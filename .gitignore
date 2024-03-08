@@ -1,6 +1,7 @@
 *.zip
 */data
 /guides
+*.csv
 
 *.pdf
 # Byte-compiled / optimized / DLL files
@@ -67,3 +68,6 @@ target/
 # Notebook Checkpoints
 .ipynb_checkpoints/
 
+practice/Hands-On-Recommendation-Systems-with-Python/data/movies_metadata.csv
+practice/Hands-On-Recommendation-Systems-with-Python/data/metadata_clean.csv
+*.csv
