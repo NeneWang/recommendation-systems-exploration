@@ -67,6 +67,9 @@ This high non obvious link could be be given the large RMSE (Root Mean Squared E
 
 ![](./img/2024-03-29-17-11-55.png)
 
+I also started writing my report here, to have documentation somewhere. **I will start writing in a more intense level here.**
+
+
 
 
 ## Week 5: 31 March-6 April 2024
