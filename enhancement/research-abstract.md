@@ -24,8 +24,9 @@ Filter raters where had less than 5 ratings performed.
 - The highest raters users tend to rate books lower.
 - The 58.86 % of books have less than 2 ratings. (32471 books left)
 
+## To be done:
 
-
+- [ ] Split Datasets.
 
 
 
