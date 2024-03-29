@@ -2,6 +2,14 @@
 
 
 
+## Installation
+
+Please download the books and datasets from the following links:
+
+https://www.kaggle.com/datasets/arashnic/book-recommendation-dataset?resource=download
+
+Extract them into the `data` folder 
+
 ## Project Structure
 
 - Enhancement: Exploration into the different types of recommendation systems. And Concrete implementation on the datasets we will be handling.
@@ -18,6 +26,14 @@
 
 
 ## Some Books To Buy
+
+## Report
+
+| Date                | Details                                  |
+| ------------------- | ---------------------------------------- |
+| 2024-03-28 18:15:57 | Finished Reading Hands On Recommendation |
+
+
 
 
 
