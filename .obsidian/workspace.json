@@ -69,7 +69,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "6db79136c63d2288",
@@ -129,12 +130,12 @@
               }
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -148,6 +149,11 @@
   },
   "active": "11704ab87d64f832",
   "lastOpenFiles": [
+    "enhancement/utils/recommender_models.py",
+    "enhancement/utils",
+    "enhancement/dev_knn_model.ipynb",
+    "img/Pasted image 20240329184204.png",
+    "img/Pasted image 20240329172253.png",
     "readme.md"
   ]
 }
