@@ -1,7 +1,7 @@
 ## Report for Check in 1
 
 
-The Project Repository
+[The Project Repository](https://github.com/NeneWang/recommendation-systems-exploration/tree/master/final_project_exploration) 
 
 Please submit a link to the dataset you plan to use, and at least 2 high-level analyses (Section 3 of the project writeup). For each analysis, please submit at minimum:
 
