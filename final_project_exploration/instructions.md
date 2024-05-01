@@ -42,6 +42,8 @@ handle the missing values, describe your strategy for doing so.
 ◦ Visualize outliers
 ◦ Visualize data distribution
 • Categorical variables: Value counts with bar charts
+
+
 3. High-level analysis
 Perform at least 6 higher-level analyses of your data. You are free to use any techniques we discussed
 in class, including but not limited to:
@@ -55,6 +57,8 @@ If applicable to an analysis, you must include:
 • An appropriate visualization.
 Please take advantage of the check-ins or office hours if you are unsure whether a visualization or
 statistical test is necessary for an analysis.
+
+
 4. Final Report
 Compile your results into a written report submitted separately as a PDF, Word document, or other
 appropriate text format. Do not include code in the report unless absolutely necessary. Your report
