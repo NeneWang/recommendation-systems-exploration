@@ -44,6 +44,7 @@ products:
         "transactions_filepath": "data/transactions_books_v1.csv",
         "features": ["product_title", "product_image", "product_soup", "product_images"],
         "version": "1.0",
+        "cleanup_tags": ["removed_under_10 transaction_products", "remove users under 10 transactions"],
         "unique_name": "books_v1",
     }
 ]
