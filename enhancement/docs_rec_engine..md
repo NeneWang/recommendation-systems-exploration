@@ -24,12 +24,19 @@ In some cases if the calification is using buy/view/etc will be codified as buy:
 
 products:
 
-| name          | type | description                          |
-| ------------- | ---- | ------------------------------------ |
-| id            | str  | Unique identifier of the product     |
-| product_title | str  | Title of the product                 |
-| product_image | str  | Image of the product                 |
-| product_price | int  | Price of the product                 |
+| name           | type | description                               |
+| -------------- | ---- | ----------------------------------------- |
+| id             | str  | Unique identifier of the product          |
+| product_title  | str  | Title of the product                      |
+| product_image  | str  | Image of the product                      |
+| product_price  | int  | Price of the product                      |
+| product_soup   | str  | All Aggregated Description of the product |
+| product_images | str  | List of images of the product             |
+| product_tags   | str  | List of tags of the product, sep by comma |
+
+**Products Metadata/Structure Organization**
+
+- 
 
 
 users:
@@ -120,16 +127,54 @@ class CosineSimilarity(RecommendationAbstract):
     # Complete Cosine Similarity Details
 
     def __init__(self, products):
-        products
+        super().__init__(products)
+        similarity_score = cosine_similarity(products)
 
-    def recommend_from_single(str):
-        if self.supports_single_recommendation:
-            pass
-        else:
-            return super().recommend_from_single(str) # Default implementaiton using like method.
 
-    def recommend_from_past():
-        pass
+    def recommend_from_single(str, n=5):
+        index = np.where(self.products == str)[0][0]
+        similar_products = sorted(list(enumerate(self.similarity_score[index])), key=lambda x: x[1], reverse=True)[1:6]
+
+        rec = []
+        for similar_product in similar_products:
+            rec.append(self.products[similar_product[0]])
+        return rec
+
+
+    def recommend_from_past(transactions, n=10):
+        rec = []
+        for transaction in transactions:
+            rec.extend(self.recommend_from_single(transaction.product_id))
+        random.shuffle(rec)
+        return rec[:n]
+
+
+from gensim.models import Word2Vec
+import numpy as np
+import random
+
+class Word2VecRecommender(RecommendationAbstract):
+    def __init__(self, products, embedding_size=100, window=5, min_count=1):
+        super().__init__(products)
+        # Train Word2Vec model
+        self.model = Word2Vec(sentences=products, vector_size=embedding_size, window=window, min_count=min_count)
+        # Build product embeddings
+        self.product_embeddings = {product: self.model.wv[product] for product in self.products}
+
+    def recommend_from_single(self, product, n=5):
+        similar_products = self.model.wv.most_similar(product, topn=n)
+        rec = [(product[0], product[1]) for product in similar_products]
+        return rec
+
+    def recommend_from_past(self, transactions, n=10):
+        rec = []
+        for transaction in transactions:
+            rec.extend(self.recommend_from_single(transaction.product_id))
+        # Sort recommendations based on similarity scores
+        rec.sort(key=lambda x: x[1], reverse=True)
+        return rec[:n]
+
+
 
 ```
 
