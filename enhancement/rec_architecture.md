@@ -36,8 +36,16 @@ products:
 
 **Products Metadata/Structure Organization**
 
-- 
-
+```json
+[
+    {
+        "data_type": "books",
+        "product_features": ["product_title", "product_image", "product_soup", "product_images"],
+        "version": "1.0",
+        "unique_name": "boooks_V1.0",
+    }
+]
+```
 
 users:
 
