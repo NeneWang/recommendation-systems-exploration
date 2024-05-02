@@ -89,32 +89,32 @@ class RecommendationAbstract:
         for id in ids:
             self.id_to_productDetail(id)
 
+    def like(str) -> List[str]:
+        """
+        Return a list of products that are similar to the given string.
+        """
+        return [product for product in self.products if str in product.product_title]
+
     def recommned_from_single(product_id, n=5) -> List[str]:
         """Overwrite or default implementation
-        similar_books = sorted(list(enumerate(similarity_score[index])),key=lambda x:x[1], reverse=True)[1:6]
-    
-        data = []
-        
-        for i in similar_books:
-            item = []
-            temp_df = books_df[books_df['Book-Title'] == pt.index[i[0]]]
-            item.extend(list(temp_df.drop_duplicates('Book-Title')['Book-Title'].values))
-            item.extend(list(temp_df.drop_duplicates('Book-Title')['Book-Author'].values))
-            item.extend(list(temp_df.drop_duplicates('Book-Title')['Image-URL-M'].values))
-            
-            data.append(item)
         
         """
         target_name = self.id_to_productDetail(product_id).product_title
-        items = []
-        for product in self.products:
-            if product.product_title != target_name:
-                items.append(product)
-        pass
+        keywords = target_name.split(" ")
+        recommendations = []
+        for keyword in keywords:
+            recommendations.extends(self.like(keyword))
+        
+        random.shuffle(recommendations)
+        return recommendations[:, n]
 
     def recommend_from_past(user_transactions, n=10) -> List[str]:
-        model.predict(user_transactions)
-        pass
+        
+        rec = []
+        for transaction in user_transactions:
+            rec.extend(self.recommend_from_single(transaction.product_id))
+        random.shuffle(rec)
+        return rec[:n]
 
 class CosineSimilarity(RecommendationAbstract):
     # Complete Cosine Similarity Details
@@ -222,7 +222,56 @@ for rec_engine in list_of_rec_engines:
 Item selected shoudl have things
 
 
+## Implementation Streamlit Pseudocode
 
+
+```python
+
+engines = {
+    "CosineSimilarity": CosineSimilarity,
+    ...
+}
+
+recommend_single_engine = st.dropdown("Select the recommendation engine", engines.keys(), default="CosineSimilarity")
+recommend_past_engine = st.dropdown("Select the recommendation engine", engines.keys(), default="CosineSimilarity")
+transactions = []
+
+products_type = "books" # Support more in the future
+PRODUCT_CASES = {
+    "books": {"Harry Potter Fan": [{product_id: xxxx, rate: 5}], "Sci Fi Fan": {...}, ...}
+}
+
+def base_cases(products_type):
+    return ["empty_case"] + PRODUCT_CASES[products_type]
+
+if(st.dropdown(base_cases(products_type))):
+    transactions = base_cases(products_type)
+
+
+st.write("Recommendation Engine: ", recommend_single_engine)
+st.write("select prodcuts")
+
+st.search_df(products)
+
+st.multi_select("Select the products", products)
+
+if (st.button("buy")):
+    transaction = {
+        "user_id": "user1",
+        "product_id": st.session_state.selected_products,
+        "rate": 5}
+    transactions.extend(transaction)
+    recommend = engines[recommend_single_engine].recommend_from_past(transactions)
+
+
+# Show the recommendations
+st.carousel(recommend)
+
+# Show the user transaction historial
+st.df(transactions)
+
+
+```
 
 
 
