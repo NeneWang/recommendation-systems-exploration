@@ -16,7 +16,7 @@ transactions:
 | id         | str  | Unique identifier of the transaction |
 | user_id    | str  | Unique identifier of the user        |
 | product_id | str  | Unique identifier of the product     |
-| rate       | int  | Rate of the product                  |
+| rate       | int  | Positive association rating          |
 
 Note:
 **Rate**: The rate is a value between 1 and 5. 1 being the lowest and 5 being the highest. 
@@ -24,25 +24,27 @@ In some cases if the calification is using buy/view/etc will be codified as buy:
 
 products:
 
-| name           | type | description                               |
-| -------------- | ---- | ----------------------------------------- |
-| id             | str  | Unique identifier of the product          |
-| product_title  | str  | Title of the product                      |
-| product_image  | str  | Image of the product                      |
-| product_price  | int  | Price of the product                      |
-| product_soup   | str  | All Aggregated Description of the product |
-| product_images | str  | List of images of the product             |
-| product_tags   | str  | List of tags of the product, sep by comma |
+| name           | type    | description                               |
+| -------------- | ------- | ----------------------------------------- |
+| id             | str     | Unique identifier of the product          |
+| product_title  | str     | Title of the product                      |
+| product_image  | str\nan | Image of the product                      |
+| product_price  | int\nan | Price of the product                      |
+| product_soup   | str     | All Aggregated Description of the product |
+| product_images | str\nan | List of images of the product             |
+| product_tags   | str\nan | List of tags of the product, sep by comma |
 
 **Products Metadata/Structure Organization**
 
 ```json
 [
     {
-        "data_type": "books",
-        "product_features": ["product_title", "product_image", "product_soup", "product_images"],
+        "data_context": "books",
+        "products_filepath": "data/products_books_v1.csv",
+        "transactions_filepath": "data/transactions_books_v1.csv",
+        "features": ["product_title", "product_image", "product_soup", "product_images"],
         "version": "1.0",
-        "unique_name": "boooks_V1.0",
+        "unique_name": "books_v1",
     }
 ]
 ```
