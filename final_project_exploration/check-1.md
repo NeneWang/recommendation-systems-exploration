@@ -62,7 +62,7 @@ users.csv
 - Find if there is a correlation between the number of reviews and the number of products purchased by a user.
 - Does players with more hours played provide more helpful reviews? What is the relation between hours played and the review result?
 - Find if there is an relation with the users count of games and total hours played and the reviews posted. 
-- Find if there are relations between: rating, prices, reviews, positive ratio ,ratio
+- Find if there are relations between: rating, prices, reviews, positive ratio, ratio
 - Find the clusters of users based on reviews provided and activity.
 - Find the clusters of games based on the reviews
 
@@ -92,4 +92,10 @@ A join table of user, products, totla_hours_played, average_recommendation_ratin
 - If any relationships are found between the variables, I will use a correlation test to determine the strength of the relationship.
 - If clusters are found I will try to use some intuition to find the relationship and run the appropriate statistical tests to understand the clusters.
 
+
+
+
+- - T Tests
+- - Anova
+- 
 
