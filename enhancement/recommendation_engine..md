@@ -3,7 +3,14 @@
 ## Building an recommendation engine that allows for all recommmendations/
 
 - [ ] Designing input and Output
-- [ ] 
+- [ ] Input should be the item selected
+
+
+Item selected shoudl have things
+
+
+
+
 
 
 
