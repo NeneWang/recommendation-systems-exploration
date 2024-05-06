@@ -148,9 +148,6 @@ class CosineSimilarityRecommender(RecommendationAbstract):
         random.shuffle(rec)
         return rec[:n]
 
-
-
-
 class WordVecBodyRecommender(RecommendationAbstract):
     
     strategy_name: str = "WordVec"
@@ -242,7 +239,6 @@ class WordVecBodyRecommender(RecommendationAbstract):
         filemodel = open(filename, 'rb')
         self.model = pickle.load(filemodel)
         filemodel.close()
-
 
 class TitleWordVecTitleyRecommender(RecommendationAbstract):
     
