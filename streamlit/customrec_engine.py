@@ -2,7 +2,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import random
 import pickle
 from sklearn.metrics.pairwise import cosine_similarity
@@ -22,6 +22,7 @@ product_data = {
 
 
 
+
 class RecommendationAbstract():
     strategy_name: str = "REQUIRES IMPLEMENTATION"
     version: str = "REQUIRES IMPLEMENTATION"
@@ -34,6 +35,10 @@ class RecommendationAbstract():
         self.products = products
         self.product_data = product_data
         self.model = None
+        # populate id_to_products
+        self.id_to_products = {}
+        for product in self.products.to_dict(orient='records'):
+            self.id_to_products[product['id']] = product
 
     def loadModel(self, model_code):
         """
@@ -47,6 +52,18 @@ class RecommendationAbstract():
         """
         # ... do training
         # self.model = trained_model
+        
+    def get_random_recommendation(self, n=1):
+        """
+        Get random recommendations
+        """
+        # Select n random rows from the DataFrame
+        random_rows = self.products.sample(n)
+        # Convert the selected rows to a list of dictionaries
+        random_recommendations = random_rows.to_dict(orient='records')
+        return random_recommendations
+
+
 
     def saveModel(self, model_code):
         """
@@ -60,6 +77,9 @@ class RecommendationAbstract():
         """
         return self.id_to_products.get(product_id)
 
+    def load(self):
+        pass
+    
     def ids_to_products(self, ids: List[str]) -> List[Dict[str, str]]:
         """
         Return product details for a list of product ids.
@@ -71,6 +91,7 @@ class RecommendationAbstract():
         Return a list of products that contain the given keyword in their title.
         """
         return [product for product in self.products if keyword in product['product_title']]
+
     def recommend_from_single(self, product_id: str, n=5) -> List[str]:
         """
         Return recommendations based on a single product.
@@ -93,6 +114,8 @@ class RecommendationAbstract():
             rec.extend(self.recommend_from_single(transaction['product_id']))
         random.shuffle(rec)
         return rec[:n]
+
+    # Implementation of the class using cosine Similarity.
 
 class CosineSimilarityRecommender(RecommendationAbstract):
     strategy_name: str = "Cosine Similarity"
@@ -117,8 +140,8 @@ class CosineSimilarityRecommender(RecommendationAbstract):
             self.save()
         
         
-    def get_filename(self, filename_prepend):
-        return  "models/" + self.product_data["unique_name"] + ".pik"
+    def get_filename(self):
+        return "models/" + self.slug_name + self.product_data["unique_name"] + ".pik"
     
     def save(self):
         # Store self.pt
@@ -134,11 +157,21 @@ class CosineSimilarityRecommender(RecommendationAbstract):
         file_simscr.close()
         
 
-    def recommend_from_single(self, product_id, n=5):
-        index = np.where(self.products == product_id)[0][0]
-        similar_products = sorted(list(enumerate(self.similarity_matrix[index])), key=lambda x: x[1], reverse=True)[1:n+1]
-        rec = [self.products[similar_product[0]] for similar_product in similar_products]
-        return rec
+    def recommend_from_single(self, product_id, n=5) -> List[Tuple[dict, float]]:
+        # print('product_id', product_id, self.products['id'] == product_id)
+        # Find the index of the product_id in the DataFrame
+        index = np.where(self.products['id'] == product_id)[0][0]
+        print('index', index)
+        # Get similarity scores for the product at the found index
+        similar_products = sorted(enumerate(self.sim_score[index]), key=lambda x: x[1], reverse=True)[1:n+1]
+        # Retrieve the similar products using their indices and return them
+        rec = [self.products.iloc[similar_product[0]] for similar_product in similar_products]
+        # Gets as list of product dictionary
+        recomendations_list = []
+        for product in rec:
+            recomendations_list.append(product.to_dict())
+        return recomendations_list
+
 
     def recommend_from_past(self, transactions, n=10):
         rec = []

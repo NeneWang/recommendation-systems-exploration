@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-from customrec_engine import CosineSimilarityRecommender, WordVecBodyRecommender, TitleWordVecTitleyRecommender
+from customrec_engine import CosineSimilarityRecommender, WordVecBodyRecommender, TitleWordVecTitleyRecommender, RecommendationAbstract
 
 
 # Load data
@@ -18,14 +18,14 @@ product_data = {
     "version": "1.0",
     "unique_name": "_books_v1_10_10",
 }
-cosineSimilarRecommender = CosineSimilarityRecommender(products=products_df, transactions=training_transactions_df)
-cosineSimilarRecommender.load()
+cosineSimilarRecommender = CosineSimilarityRecommender(products=products_df, product_data=product_data)
+# cosineSimilarRecommender.load()
 
-wordVecBodyRecommender = WordVecBodyRecommender(products=products_df, transactions=training_transactions_df)
-wordVecBodyRecommender.load()
+wordVecBodyRecommender = WordVecBodyRecommender(products=products_df, product_data=product_data)
+# wordVecBodyRecommender.load()
 
-titleWordVecTitleRecommender = TitleWordVecTitleyRecommender(products=products_df, transactions=training_transactions_df)
-titleWordVecTitleRecommender.load()
+titleWordVecTitleRecommender = TitleWordVecTitleyRecommender(products=products_df, product_data=product_data)
+# titleWordVecTitleRecommender.load()
 
 
 
@@ -77,10 +77,6 @@ def main():
 
     st.title("Product Recommendation Demo")
 
-    # Select recommendation engines
-    engines = {
-        "Cosine Similarity": CosineSimilarity,
-    }
     recommend_single_engine = st.selectbox("Select the recommendation engine for single product:", list(engines.keys()))
     recommend_past_engine = st.selectbox("Select the recommendation engine for past transactions:", list(engines.keys()))
 
@@ -122,11 +118,14 @@ def main():
     if st.button("Get Recommendations"):
         if st.session_state.selected_products:
             
-            selected_engine = engines[recommend_single_engine]["engine"]
-            
+            selected_engine: RecommendationAbstract = engines[recommend_single_engine]["engine"]
+            product = st.session_state.selected_products[0]
+            selected_engine.load()
+            product_id = get_product_id(product)
             # recommend_single = engines[recommend_single_engine].recommend_from_past(st.session_state.selected_products)
             # selected_engine = 
-            # st.write("Recommendations based on selected products:", recommend_single)
+            recommendation = selected_engine.recommend_from_single(product_id=product_id)
+            st.write("Recommendations based on selected products:", recommendation)
         else:
             st.warning("Please select some products first!")
 
