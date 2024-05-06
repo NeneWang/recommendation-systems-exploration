@@ -113,7 +113,7 @@ class RecommendationAbstract:
         """
         return [product for product in self.products if str in product.product_title]
 
-    def recommned_from_single(product_id, n=5) -> List[str]:
+    def recommned_from_single(product_id, n=5) -> List[tuple[str, float, dict]]:
         """Overwrite or default implementation
         
         """
@@ -126,7 +126,7 @@ class RecommendationAbstract:
         random.shuffle(recommendations)
         return recommendations[:, n]
 
-    def recommend_from_past(user_transactions, n=10) -> List[str]:
+    def recommend_from_past(user_transactions, n=10) -> List[tuple[str, float, dict]]:
         
         rec = []
         for transaction in user_transactions:
@@ -330,9 +330,13 @@ st.df(transactions)
 ```
 
 
+Implemented Algorithms:
 
+- CosineSimilarityRecommender
+- SoupVecRecommender
+- TitleVecRecommender
 
-
+Lets have those at the 
 
 
 

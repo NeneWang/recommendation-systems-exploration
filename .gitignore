@@ -1,4 +1,6 @@
 *.pik
+*.model
+
 *.zip
 */data
 /guides
