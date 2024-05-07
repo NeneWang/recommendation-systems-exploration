@@ -462,7 +462,7 @@ class TitleWordVecTitleyRecommenderV2(RecommendationAbstract):
             for rec_item, confidence_rate in rec:
                 # print(rec_item)
                 if rec_item['product_title'].lower() not in seen:
-                    seen.add(rec_item['product_title'])
+                    seen.add(rec_item['product_title'].lower())
                     recommendations.append((rec_item, confidence_rate))
                 else:
                     continue
