@@ -519,6 +519,46 @@ print("Keywords:", keywords)
 ```
 
 
+Converted into a recommender becomes:
+
+```python
+import spacy
+
+
+```
+
+Basic Test
+
+```python
+# Get random and recommend.
+engineRec = TitleWordVecTitleyRecommender(productdf, product_data)
+# Train.
+engineRec.train( auto_save=True)
+# engineRec.load()
+
+
+
+randomProduct = engineRec.get_random_recommendation()[0]
+pprint.pprint(randomProduct)
+
+print('======== RECOMENDATIONS SINGLE CASE =========== ')
+engineRec.recommend_from_single(randomProduct['id'])
+
+# ... Repetition.
+print("=============  RECOMENDATIONS RECOMMENDATIONS  ============")
+tansactions = ['0590353403', '0439139597']
+
+"""
+Harry Potter and the Sorcerer's Stone (Book 1)
+"Harry Potter and the Goblet of Fire (Book 4)"
+"""
+
+rec = engineRec.recommend_from_past(tansactions)
+pprint.pprint(rec)
+
+
+```
+
 
 
 

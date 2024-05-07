@@ -1,14 +1,12 @@
 import streamlit as st
 import pandas as pd
 
-from customrec_engine import CosineSimilarityRecommender, WordVecBodyRecommender, TitleWordVecTitleyRecommender, RecommendationAbstract
+from customrec_engine import CosineSimilarityRecommender, WordVecBodyRecommender, TitleWordVecTitleyRecommender, RecommendationAbstract, TitleWordVecTitleyRecommenderV2
 
 
 # Load data
-products_filepath = "../data/products_books_v1.csv"
-transactions_filepath = "../data/transactions_books_v1.csv"
-products_df = pd.read_csv(products_filepath)
-training_transactions_df = pd.read_csv(transactions_filepath)
+# products_filepath = "../data/products_books_v1.csv"
+# transactions_filepath = "../data/transactions_books_v1.csv"
 
 product_data = {
     "data_context": "books",
@@ -18,6 +16,12 @@ product_data = {
     "version": "1.0",
     "unique_name": "_books_v1_10_10",
 }
+products_filepath = product_data["product_filepath"]
+transactions_filepath = product_data["transactions_filepath"]
+
+products_df = pd.read_csv(products_filepath)
+training_transactions_df = pd.read_csv(transactions_filepath)
+
 cosineSimilarRecommender = CosineSimilarityRecommender(products=products_df, product_data=product_data)
 # cosineSimilarRecommender.load()
 
@@ -27,6 +31,7 @@ wordVecBodyRecommender = WordVecBodyRecommender(products=products_df, product_da
 titleWordVecTitleRecommender = TitleWordVecTitleyRecommender(products=products_df, product_data=product_data)
 # titleWordVecTitleRecommender.load()
 
+titleWordVectRecommender2 = TitleWordVecTitleyRecommenderV2(products=products_df, product_data=product_data)
 
 
 engines = {
@@ -40,6 +45,10 @@ engines = {
     },
     "wordvec_title": {
         "engine": titleWordVecTitleRecommender
+    },
+    "word_vec_title_v2": {
+        "engine": titleWordVectRecommender2
+    
     }
 }
 
@@ -72,8 +81,8 @@ def main():
     # user transactions
     transactions_df = pd.DataFrame(columns=["id", "user_id", "product_id", "rate"])
     
-    if "selected_products" not in st.session_state:
-        st.session_state.selected_products = []
+    if "selected_product" not in st.session_state:
+        st.session_state.selected_product = []
 
     st.title("Product Recommendation Demo")
 
@@ -86,43 +95,43 @@ def main():
     # Select base case
     base_case = st.selectbox("Select base case:", base_cases(products_type))
     if base_case != "empty_case":
-        st.session_state.selected_products = PRODUCT_CASES[products_type][base_case]
+        st.session_state.selected_product = PRODUCT_CASES[products_type][base_case]
 
-    st.write("Selected products:", st.session_state.selected_products)
+    st.write("Selected products:", st.session_state.selected_product)
 
     # Display products
-    st.write("Product Information:")
-    st.write(products_df)
+    # st.write("Product Information:")
+    # st.write(products_df)
 
     # Search and select products
-    selected_products = st.multiselect("Select products to add to cart:", products_df["product_title"], default=st.session_state.selected_products)
-    st.session_state.selected_products = selected_products
-
+    selected_product = st.selectbox("Select products to add to cart:", products_df["product_title"])
+    st.session_state.selected_product = selected_product
+    print(st.session_state.selected_product)
     # Buy button
     if st.button("Buy"):
         transactions = []
-        for product in st.session_state.selected_products:
-            product_id = get_product_id(product)
-            transaction = {
-                "id": len(transactions_df) + 1,
-                "user_id": 1,
-                "product_id": product_id,
-                'product_title': product, 
-                "rate": 1
-            }
-            transactions.append(transaction)
+        product = st.session_state.selected_product
+        product_id = get_product_id(product)
+        transaction = {
+            "id": len(transactions_df) + 1,
+            "user_id": 1,
+            "product_id": product_id,
+            'product_title': product, 
+            "rate": 1
+        }
+        transactions.append(transaction)
         transactions_df = pd.concat([transactions_df, pd.DataFrame(transactions)], ignore_index=True)
         st.write("Transaction:", transaction)
 
     # Get recommendations
     if st.button("Get Recommendations"):
-        if st.session_state.selected_products:
+        if st.session_state.selected_product:
             
             selected_engine: RecommendationAbstract = engines[recommend_single_engine]["engine"]
-            product = st.session_state.selected_products[0]
+            product = st.session_state.selected_product
             selected_engine.load()
             product_id = get_product_id(product)
-            # recommend_single = engines[recommend_single_engine].recommend_from_past(st.session_state.selected_products)
+            # recommend_single = engines[recommend_single_engine].recommend_from_past(st.session_state.selected_product)
             # selected_engine = 
             recommendation = selected_engine.recommend_from_single(product_id=product_id)
             st.write("Recommendations based on selected products:", recommendation)
