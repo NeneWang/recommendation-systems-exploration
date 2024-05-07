@@ -57,3 +57,4 @@ Implemented Algorithms:
 - CosineSimilarityRecommender
 - SoupVecRecommender
 - TitleVecRecommender
+
