@@ -22,16 +22,16 @@ transactions_filepath = product_data["transactions_filepath"]
 products_df = pd.read_csv(products_filepath)
 training_transactions_df = pd.read_csv(transactions_filepath)
 
-cosineSimilarRecommender = CosineSimilarityRecommender(products=products_df, product_data=product_data)
+cosineSimilarRecommender = CosineSimilarityRecommender
 # cosineSimilarRecommender.load()
 
-wordVecBodyRecommender = WordVecBodyRecommender(products=products_df, product_data=product_data)
+wordVecBodyRecommender = WordVecBodyRecommender
 # wordVecBodyRecommender.load()
 
-titleWordVecTitleRecommender = TitleWordVecTitleyRecommender(products=products_df, product_data=product_data)
+titleWordVecTitleRecommender = TitleWordVecTitleyRecommender
 # titleWordVecTitleRecommender.load()
 
-titleWordVectRecommender2 = TitleWordVecTitleyRecommenderV2(products=products_df, product_data=product_data)
+titleWordVectRecommender2 = TitleWordVecTitleyRecommenderV2
 
 
 engines = {
@@ -51,10 +51,6 @@ engines = {
         "title": "WordVec Title V2",
         "engine": titleWordVectRecommender2
     
-    },
-    "collaborative_filtering": {
-        "title": "Collaborative Filtering",
-        "engine": cosineSimilarRecommender
     },
     "KNN Basic": {
         "title": "KNN Basic",
@@ -155,22 +151,26 @@ if st.button("Buy"):
 if st.button("Get Recommendations"):
     if st.session_state.selected_product:
         
-        selected_engine: RecommendationAbstract = engines[recommend_single_engine]["engine"]
+        selected_engine: RecommendationAbstract = engines[recommend_single_engine]["engine"](products=products_df, product_data=product_data)
         product = st.session_state.selected_product
         selected_engine.load()
         product_id = get_product_id(product)
-        # recommend_single = engines[recommend_single_engine].recommend_from_past(st.session_state.selected_product)
-        # selected_engine = 
         recommendation = selected_engine.recommend_from_single(product_id=product_id)
         st.write("Recommendations based on selected products:", recommendation)
     else:
         st.warning("Please select some products first!")
 
-    if not st.session_state.transaction_list.empty:
-        # last_transaction = transactions_df.iloc[-1]
-        # recommend_past = engines[recommend_past_engine].recommend_from_past([last_transaction])
-        # st.write("Recommendations based on past transaction:", recommend_past)
-        recommend_past = engines[recommend_past_engine]["engine"].recommend_from_past(st.session_state.transactions_list)
+    transactions = st.session_state.transactions_list
+    # sort by product appearisons 
+    if not len(transactions) == 0:
+        # print("recommend_past_engine", recommend_past_engine)
+        recommend_past_engine_obj: RecommendationAbstract = engines[recommend_past_engine]["engine"](products=products_df, product_data=product_data)
+        recommend_past_engine_obj.load()
+        
+        transaction_books_ids = []
+        for transaction in transactions:
+            transaction_books_ids.append(transaction["product_id"])
+        recommend_past =recommend_past_engine_obj.recommend_from_past(transaction_books_ids)
         st.write("Recommendations based on past transaction:", recommend_past)
 
 # Show transactions

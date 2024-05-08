@@ -144,10 +144,17 @@ class CosineSimilarityRecommender(RecommendationAbstract):
 
     def recommend_from_single(self, product_id, n=5) -> List[tuple[dict, float]]:
         # Find the index of the product_id in the DataFrame
+        # print('product_id', product_id)
         index = np.where(self.products['id'] == product_id)[0][0]
         
+        similar_products = []
         # Get similarity scores for the product at the found index
-        similar_products = sorted(enumerate(self.sim_score[index]), key=lambda x: x[1], reverse=True)[1:n+1]
+        try:
+            similar_products = sorted(enumerate(self.sim_score[index]), key=lambda x: x[1], reverse=True)[1:n+1]
+        except Exception as e:
+            print('checl - self sim score', self.sim_score)
+            print('checl - index', index)
+            print('Error', e)
         
         # Retrieve the similar products using their indices and return them
         recommendations_list = []
@@ -160,6 +167,7 @@ class CosineSimilarityRecommender(RecommendationAbstract):
 
 
     def recommend_from_past(self, transactions, n=10):
+        print('transactions received', transactions)
         rec: List[tuple[dict, float]] = []
         for transaction in transactions:
             rec.extend(self.recommend_from_single(transaction))
