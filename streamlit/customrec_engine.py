@@ -10,7 +10,11 @@ from gensim.models import Word2Vec
 import string
 import re
 import spacy
+import Tuple
+from surprise import KNNBasic, KNNWithZScore, KNNBaseline, KNNWithMeans
 
+from surprise import Dataset, Reader, SVD
+from surprise.model_selection import train_test_split
 
 product_data = {
     "data_context": "books",
@@ -357,9 +361,7 @@ class TitleWordVecTitleyRecommender(RecommendationAbstract):
         """
         Get the filename for saving/loading the model.
         """
-        return "models/" + self.slug_name + self.product_data["unique_name"] + ".model"
-
-    
+        return "models/" + self.slug_name + self.product_data["unique_name"] + ".model"    
     
 class TitleWordVecTitleyRecommenderV2(RecommendationAbstract):
     """
@@ -546,3 +548,658 @@ class TitleWordVecTitleyRecommenderV2(RecommendationAbstract):
         """
         return "models/" + self.slug_name + self.product_data["unique_name"] + ".model"
     
+
+class KNNBasicRecommender(RecommendationAbstract):
+    strategy_name: str = "KNN Basic"
+    slug_name: str = "knn_basic"
+    version: str = "v1"
+    details: str = "REQUIRES IMPLEMENTATION"
+    link: str = "REQUIRES IMPLEMENTATION"
+    supports_single_recommendation: bool = True
+    supports_past_recommendation: bool = True
+    
+    def __init__(self, products: pd.DataFrame, product_data: dict, transactions = None):
+        super().__init__(products, product_data)
+        self.products = products
+        self.model = None
+        
+        # Get the product ids and store them.
+        self.product_ids = self.products['id'].unique()
+        self.all_transactions_df = transactions
+        
+    def train(self, transactions, auto_save=True, dont_save_self_state=False) :
+        
+        sim_options = {"name": "pearson_baseline", "user_based": False}
+        model = KNNBasic(sim_options=sim_options)
+        
+        reader = Reader(rating_scale=(1, 5))
+        
+        data = Dataset.load_from_df(transactions[['user_id', 'product_id', 'rate']], reader)
+        
+        model.fit(data.build_full_trainset())
+        
+        if dont_save_self_state:
+            return model
+        
+        self.model = model
+        self.all_transactions_df = transactions
+        # self.accuracy = accuracy.rmse(model.test(data.build_full_trainset().build_testset()), verbose=True)
+        
+        if auto_save:
+            self.save()
+            
+        return model
+        
+        
+    def get_filename(self):
+        return "models/" + self.slug_name + self.product_data["unique_name"] + ".pik"
+    
+    def save(self):
+        # Store self.pt
+        filename = self.get_filename()
+        model_file = open(filename, 'wb')
+        pickle.dump(self.model, model_file)
+        model_file.close()
+        
+    def load(self, auto_create=True):
+        
+        filename = self.get_filename()
+        try:
+            model_file = open(filename, 'rb')
+            self.model = pickle.load(model_file)
+            model_file.close()
+        except:
+            self.save()
+            
+
+    def recommend_from_single(self, product_id: str, n=5) -> List[Tuple[dict, float]]:
+        """
+        
+        # Retrieve inner ids of the nearest neighbors of Toy Story.
+        toy_story_neighbors = algo.get_neighbors(toy_story_inner_id, k=10)
+        """
+        recommendation_list: List[tuple[dict, float]] = []
+        product_inner_id = self.model.trainset.to_inner_iid(product_id)
+        neighbors = self.model.get_neighbors(product_inner_id, k=n*2)
+        
+        # for each neighbor, try to predict and prioritize given a user in all_transactions_that shared that book as well.
+        for neighbor_book_inner_id in neighbors:
+            # get user_id that top rated the product sort the relevant_transactions
+            if neighbor_book_inner_id == product_inner_id:
+                continue
+            
+            product_serie = self.products.iloc[neighbor_book_inner_id]
+            neighbor_book_id = product_serie['id']
+            relevant_transactions = self.all_transactions_df[self.all_transactions_df['product_id'] == neighbor_book_id]
+            relevant_transactions = relevant_transactions.sort_values(by='rate', ascending=False)
+            # remove where  product_id product_id
+            if len(relevant_transactions) == 0:
+                continue
+            
+            user_id = relevant_transactions.iloc[0]['user_id']
+            
+            pred = self.model.predict(user_id, neighbor_book_id)
+            recommendation_list.append((self.id_to_products[neighbor_book_id], pred.est))
+        
+        # sort recommendations
+        recommendation_list.sort(key=lambda x: x[1], reverse=True)
+        return recommendation_list[:n]
+
+    def collaborativestore_predict_population(self, transactions: List[str], n=5):
+        """
+        Adds the transactions to the use history to be considered when training the model. Doesnt not save the model with this transactions,
+        proceeds to use the models to create recommendations. This is pattern was added for KNN and Matrix Factorizations
+        """
+        # Add transactions to the self.transactions_df as a new user
+        transaction_rows = []
+        random_user_id = "user" + str(random.randint(0, 1000000))
+        for transaction in transactions:
+            transaction_rows.append({'user_id': 'user_id', 'product_id': transaction, 'rate': 5})
+        
+        # Convert to a DataFrame
+        new_transactions_df = pd.DataFrame(transaction_rows)
+
+        # Append using concat
+        all_transactions_df: pd.Dataframe = pd.concat([self.all_transactions_df, new_transactions_df], ignore_index=True)
+        
+        model = self.train(all_transactions_df, dont_save_self_state=True)
+        
+        return self.predict_recommendations(random_user_id, transactions, model, n)
+    
+    def predict_recommendations(self, user_id: str, transactions: List[str], model, n=5):
+        books_to_predict = [book_id for book_id in self.product_ids if book_id not in transactions]
+        predictions = []
+        
+        for book_id in books_to_predict:
+            pred = model.predict(user_id, book_id)
+            predictions.append((book_id, pred.est))
+        
+        pred_products = []
+        # sort predictions
+        predictions.sort(key=lambda x: x[1], reverse=True)
+        for book_id, confidence in predictions[:n]:
+            product = self.id_to_products[book_id]
+            pred_products.append(product)
+            
+        return pred_products
+        
+
+    def recommend_from_past(self, transactions: List[str], n=10):
+        """
+        Calls for each transaction the recommend_from_single method.
+        Gives Priority if seen multiple recommendations.
+        Shuffle and returns :n
+        """
+        recs = set()
+        recs_seen_times = {}
+        products_dictionary = {}
+        
+        # Deprecated.
+        # if(len(transactions) > 2):
+        #     return self.collaborativestore_predict_population(
+        #         transactions, n=n
+        #     )
+        
+        for transaction in transactions:
+            recs = self.recommend_from_single(transaction)
+            for rec_id, confidence in recs:
+                
+                if rec_id in recs:
+                    recs_seen_times[rec_id['id']] += 1
+                else:
+                    products_dictionary[rec_id['id']] = rec_id
+                    recs_seen_times[rec_id['id']] = 1
+        
+        for rec_id in recs_seen_times:
+            recs.append((products_dictionary[rec_id], recs_seen_times[rec_id]))
+            
+        recs = list(recs)
+        
+        recs.sort(key=lambda x: x[1], reverse=True)
+        return recs
+    
+class KNNWithZScoreRecommender(RecommendationAbstract):
+    strategy_name: str = "KNN With ZScore"
+    slug_name: str = "knn_with_zscore"
+    version: str = "v1"
+    details: str = "REQUIRES IMPLEMENTATION"
+    link: str = "REQUIRES IMPLEMENTATION"
+    supports_single_recommendation: bool = True
+    supports_past_recommendation: bool = True
+    
+    def __init__(self, products: pd.DataFrame, product_data: dict, transactions = None):
+        super().__init__(products, product_data)
+        self.products = products
+        self.model = None
+        
+        # Get the product ids and store them.
+        self.product_ids = self.products['id'].unique()
+        self.all_transactions_df = transactions
+        
+    def train(self, transactions, auto_save=True, dont_save_self_state=False) :
+        
+        sim_options = {"name": "pearson_baseline", "user_based": False}
+        model = KNNWithZScore(sim_options=sim_options)
+        
+        reader = Reader(rating_scale=(1, 5))
+        
+        data = Dataset.load_from_df(transactions[['user_id', 'product_id', 'rate']], reader)
+        
+        model.fit(data.build_full_trainset())
+        
+        if dont_save_self_state:
+            return model
+        
+        self.model = model
+        self.all_transactions_df = transactions
+        # self.accuracy = accuracy.rmse(model.test(data.build_full_trainset().build_testset()), verbose=True)
+        
+        if auto_save:
+            self.save()
+            
+        return model
+        
+        
+    def get_filename(self):
+        return "models/" + self.slug_name + self.product_data["unique_name"] + ".pik"
+    
+    def save(self):
+        # Store self.pt
+        filename = self.get_filename()
+        model_file = open(filename, 'wb')
+        pickle.dump(self.model, model_file)
+        model_file.close()
+        
+    def load(self, auto_create=True):
+        
+        filename = self.get_filename()
+        try:
+            model_file = open(filename, 'rb')
+            self.model = pickle.load(model_file)
+            model_file.close()
+        except:
+            self.save()
+        
+
+    def recommend_from_single(self, product_id: str, n=5) -> List[Tuple[dict, float]]:
+        """
+        
+        # Retrieve inner ids of the nearest neighbors of Toy Story.
+        toy_story_neighbors = algo.get_neighbors(toy_story_inner_id, k=10)
+        """
+        recommendation_list: List[tuple[dict, float]] = []
+        product_inner_id = self.model.trainset.to_inner_iid(product_id)
+        neighbors = self.model.get_neighbors(product_inner_id, k=n*2)
+        
+        # for each neighbor, try to predict and prioritize given a user in all_transactions_that shared that book as well.
+        for neighbor_book_inner_id in neighbors:
+            product_serie = self.products.iloc[neighbor_book_inner_id]
+            neighbor_book_id = product_serie['id']
+            relevant_transactions = self.all_transactions_df[self.all_transactions_df['product_id'] == neighbor_book_id]
+            # get user_id that top rated the product sort the relevant_transactions
+            relevant_transactions = relevant_transactions.sort_values(by='rate', ascending=False)
+            
+            user_id = relevant_transactions.iloc[0]['user_id']
+            
+            pred = self.model.predict(user_id, neighbor_book_id)
+            recommendation_list.append((self.id_to_products[neighbor_book_id], pred.est))
+        
+        # sort recommendations
+        recommendation_list.sort(key=lambda x: x[1], reverse=True)
+        return recommendation_list[:n]
+
+    def collaborativestore_predict_population(self, transactions: List[str], n=5):
+        """
+        Adds the transactions to the use history to be considered when training the model. Doesnt not save the model with this transactions,
+        proceeds to use the models to create recommendations. This is pattern was added for KNN and Matrix Factorizations
+        """
+        # Add transactions to the self.transactions_df as a new user
+        transaction_rows = []
+        random_user_id = "user" + str(random.randint(0, 1000000))
+        for transaction in transactions:
+            transaction_rows.append({'user_id': 'user_id', 'product_id': transaction, 'rate': 5})
+        
+        # Convert to a DataFrame
+        new_transactions_df = pd.DataFrame(transaction_rows)
+
+        # Append using concat
+        all_transactions_df: pd.Dataframe = pd.concat([self.all_transactions_df, new_transactions_df], ignore_index=True)
+        
+        model = self.train(all_transactions_df, dont_save_self_state=True)
+        
+        return self.predict_recommendations(random_user_id, transactions, model, n)
+    
+    def predict_recommendations(self, user_id: str, transactions: List[str], model, n=5):
+        books_to_predict = [book_id for book_id in self.product_ids if book_id not in transactions]
+        predictions = []
+        
+        for book_id in books_to_predict:
+            pred = model.predict(user_id, book_id)
+            predictions.append((book_id, pred.est))
+        
+        pred_products = []
+        # sort predictions
+        predictions.sort(key=lambda x: x[1], reverse=True)
+        for book_id, confidence in predictions[:n]:
+            product = self.id_to_products[book_id]
+            pred_products.append(product)
+            
+        return pred_products
+        
+
+    def recommend_from_past(self, transactions: List[str], n=10):
+        """
+        Calls for each transaction the recommend_from_single method.
+        Gives Priority if seen multiple recommendations.
+        Shuffle and returns :n
+        """
+        recs = set()
+        recs_seen_times = {}
+        products_dictionary = {}
+        
+        # Deprecated.
+        # if(len(transactions) > 2):
+        #     return self.collaborativestore_predict_population(
+        #         transactions, n=n
+        #     )
+        
+        for transaction in transactions:
+            recs = self.recommend_from_single(transaction)
+            for rec_id, confidence in recs:
+                
+                if rec_id in recs:
+                    recs_seen_times[rec_id['id']] += 1
+                else:
+                    products_dictionary[rec_id['id']] = rec_id
+                    recs_seen_times[rec_id['id']] = 1
+        
+        for rec_id in recs_seen_times:
+            recs.append((products_dictionary[rec_id], recs_seen_times[rec_id]))
+            
+        recs = list(recs)
+        
+        recs.sort(key=lambda x: x[1], reverse=True)
+        return recs
+    
+class KNNWithBaselineRecommender(RecommendationAbstract):
+    strategy_name: str = "KNN With Means"
+    slug_name: str = "knn_with_baseline"
+    version: str = "v1"
+    details: str = "REQUIRES IMPLEMENTATION"
+    link: str = "REQUIRES IMPLEMENTATION"
+    supports_single_recommendation: bool = True
+    supports_past_recommendation: bool = True
+    
+    def __init__(self, products: pd.DataFrame, product_data: dict, transactions = None):
+        super().__init__(products, product_data)
+        self.products = products
+        self.model = None
+        
+        # Get the product ids and store them.
+        self.product_ids = self.products['id'].unique()
+        self.all_transactions_df = transactions
+        
+    def train(self, transactions, auto_save=True, dont_save_self_state=False) :
+        
+        sim_options = {"name": "pearson_baseline", "user_based": False}
+        model = KNNBaseline(sim_options=sim_options)
+        
+        reader = Reader(rating_scale=(1, 5))
+        
+        data = Dataset.load_from_df(transactions[['user_id', 'product_id', 'rate']], reader)
+        
+        model.fit(data.build_full_trainset())
+        
+        if dont_save_self_state:
+            return model
+        
+        self.model = model
+        self.all_transactions_df = transactions
+        # self.accuracy = accuracy.rmse(model.test(data.build_full_trainset().build_testset()), verbose=True)
+        
+        if auto_save:
+            self.save()
+            
+        return model
+        
+        
+    def get_filename(self):
+        return "models/" + self.slug_name + self.product_data["unique_name"] + ".pik"
+    
+    def save(self):
+        # Store self.pt
+        filename = self.get_filename()
+        model_file = open(filename, 'wb')
+        pickle.dump(self.model, model_file)
+        model_file.close()
+        
+    def load(self):
+        filename = self.get_filename()
+        model_file = open(filename, 'rb')
+        self.model = pickle.load(model_file)
+        model_file.close()
+        
+
+    def recommend_from_single(self, product_id: str, n=5) -> List[Tuple[dict, float]]:
+        """
+        
+        # Retrieve inner ids of the nearest neighbors of Toy Story.
+        toy_story_neighbors = algo.get_neighbors(toy_story_inner_id, k=10)
+        """
+        recommendation_list: List[tuple[dict, float]] = []
+        product_inner_id = self.model.trainset.to_inner_iid(product_id)
+        neighbors = self.model.get_neighbors(product_inner_id, k=n*2)
+        
+        # for each neighbor, try to predict and prioritize given a user in all_transactions_that shared that book as well.
+        for neighbor_book_inner_id in neighbors:
+            product_serie = self.products.iloc[neighbor_book_inner_id]
+            neighbor_book_id = product_serie['id']
+            relevant_transactions = self.all_transactions_df[self.all_transactions_df['product_id'] == neighbor_book_id]
+            # get user_id that top rated the product sort the relevant_transactions
+            relevant_transactions = relevant_transactions.sort_values(by='rate', ascending=False)
+            
+            user_id = relevant_transactions.iloc[0]['user_id']
+            
+            pred = self.model.predict(user_id, neighbor_book_id)
+            recommendation_list.append((self.id_to_products[neighbor_book_id], pred.est))
+        
+        # sort recommendations
+        recommendation_list.sort(key=lambda x: x[1], reverse=True)
+        return recommendation_list[:n]
+
+    def collaborativestore_predict_population(self, transactions: List[str], n=5):
+        """
+        Adds the transactions to the use history to be considered when training the model. Doesnt not save the model with this transactions,
+        proceeds to use the models to create recommendations. This is pattern was added for KNN and Matrix Factorizations
+        """
+        # Add transactions to the self.transactions_df as a new user
+        transaction_rows = []
+        random_user_id = "user" + str(random.randint(0, 1000000))
+        for transaction in transactions:
+            transaction_rows.append({'user_id': 'user_id', 'product_id': transaction, 'rate': 5})
+        
+        # Convert to a DataFrame
+        new_transactions_df = pd.DataFrame(transaction_rows)
+
+        # Append using concat
+        all_transactions_df: pd.Dataframe = pd.concat([self.all_transactions_df, new_transactions_df], ignore_index=True)
+        
+        model = self.train(all_transactions_df, dont_save_self_state=True)
+        
+        return self.predict_recommendations(random_user_id, transactions, model, n)
+    
+    def predict_recommendations(self, user_id: str, transactions: List[str], model, n=5):
+        books_to_predict = [book_id for book_id in self.product_ids if book_id not in transactions]
+        predictions = []
+        
+        for book_id in books_to_predict:
+            pred = model.predict(user_id, book_id)
+            predictions.append((book_id, pred.est))
+        
+        pred_products = []
+        # sort predictions
+        predictions.sort(key=lambda x: x[1], reverse=True)
+        for book_id, confidence in predictions[:n]:
+            product = self.id_to_products[book_id]
+            pred_products.append(product)
+            
+        return pred_products
+        
+
+    def recommend_from_past(self, transactions: List[str], n=10):
+        """
+        Calls for each transaction the recommend_from_single method.
+        Gives Priority if seen multiple recommendations.
+        Shuffle and returns :n
+        """
+        recs = set()
+        recs_seen_times = {}
+        products_dictionary = {}
+        
+        # Deprecated.
+        # if(len(transactions) > 2):
+        #     return self.collaborativestore_predict_population(
+        #         transactions, n=n
+        #     )
+        
+        for transaction in transactions:
+            recs = self.recommend_from_single(transaction)
+            for rec_id, confidence in recs:
+                
+                if rec_id in recs:
+                    recs_seen_times[rec_id['id']] += 1
+                else:
+                    products_dictionary[rec_id['id']] = rec_id
+                    recs_seen_times[rec_id['id']] = 1
+        
+        for rec_id in recs_seen_times:
+            recs.append((products_dictionary[rec_id], recs_seen_times[rec_id]))
+            
+        recs = list(recs)
+        
+        recs.sort(key=lambda x: x[1], reverse=True)
+        return recs
+    
+class KNNWithMeansRecommender(RecommendationAbstract):
+    strategy_name: str = "KNN With Means"
+    slug_name: str = "knn_with_means"
+    version: str = "v1"
+    details: str = "REQUIRES IMPLEMENTATION"
+    link: str = "REQUIRES IMPLEMENTATION"
+    supports_single_recommendation: bool = True
+    supports_past_recommendation: bool = True
+    
+    def __init__(self, products: pd.DataFrame, product_data: dict, transactions = None):
+        super().__init__(products, product_data)
+        self.products = products
+        self.model = None
+        
+        # Get the product ids and store them.
+        self.product_ids = self.products['id'].unique()
+        self.all_transactions_df = transactions
+        
+    def train(self, transactions, auto_save=True, dont_save_self_state=False) :
+        
+        sim_options = {"name": "pearson_baseline", "user_based": False}
+        model = KNNWithMeans(sim_options=sim_options)
+        
+        reader = Reader(rating_scale=(1, 5))
+        
+        data = Dataset.load_from_df(transactions[['user_id', 'product_id', 'rate']], reader)
+        
+        model.fit(data.build_full_trainset())
+        
+        if dont_save_self_state:
+            return model
+        
+        self.model = model
+        self.all_transactions_df = transactions
+        # self.accuracy = accuracy.rmse(model.test(data.build_full_trainset().build_testset()), verbose=True)
+        
+        if auto_save:
+            self.save()
+            
+        return model
+        
+        
+    def get_filename(self):
+        return "models/" + self.slug_name + self.product_data["unique_name"] + ".pik"
+    
+    def save(self):
+        # Store self.pt
+        filename = self.get_filename()
+        model_file = open(filename, 'wb')
+        pickle.dump(self.model, model_file)
+        model_file.close()
+        
+    def load(self):
+        filename = self.get_filename()
+        model_file = open(filename, 'rb')
+        self.model = pickle.load(model_file)
+        model_file.close()
+        
+
+    def recommend_from_single(self, product_id: str, n=5) -> List[Tuple[dict, float]]:
+        """
+        
+        # Retrieve inner ids of the nearest neighbors of Toy Story.
+        toy_story_neighbors = algo.get_neighbors(toy_story_inner_id, k=10)
+        """
+        recommendation_list: List[tuple[dict, float]] = []
+        product_inner_id = self.model.trainset.to_inner_iid(product_id)
+        neighbors = self.model.get_neighbors(product_inner_id, k=n*2)
+        
+        # for each neighbor, try to predict and prioritize given a user in all_transactions_that shared that book as well.
+        for neighbor_book_inner_id in neighbors:
+            product_serie = self.products.iloc[neighbor_book_inner_id]
+            neighbor_book_id = product_serie['id']
+            relevant_transactions = self.all_transactions_df[self.all_transactions_df['product_id'] == neighbor_book_id]
+            # get user_id that top rated the product sort the relevant_transactions
+            relevant_transactions = relevant_transactions.sort_values(by='rate', ascending=False)
+            
+            user_id = relevant_transactions.iloc[0]['user_id']
+            
+            pred = self.model.predict(user_id, neighbor_book_id)
+            recommendation_list.append((self.id_to_products[neighbor_book_id], pred.est))
+        
+        # sort recommendations
+        recommendation_list.sort(key=lambda x: x[1], reverse=True)
+        return recommendation_list[:n]
+
+    def collaborativestore_predict_population(self, transactions: List[str], n=5):
+        """
+        Adds the transactions to the use history to be considered when training the model. Doesnt not save the model with this transactions,
+        proceeds to use the models to create recommendations. This is pattern was added for KNN and Matrix Factorizations
+        """
+        # Add transactions to the self.transactions_df as a new user
+        transaction_rows = []
+        random_user_id = "user" + str(random.randint(0, 1000000))
+        for transaction in transactions:
+            transaction_rows.append({'user_id': 'user_id', 'product_id': transaction, 'rate': 5})
+        
+        # Convert to a DataFrame
+        new_transactions_df = pd.DataFrame(transaction_rows)
+
+        # Append using concat
+        all_transactions_df: pd.Dataframe = pd.concat([self.all_transactions_df, new_transactions_df], ignore_index=True)
+        
+        model = self.train(all_transactions_df, dont_save_self_state=True)
+        
+        return self.predict_recommendations(random_user_id, transactions, model, n)
+    
+    def predict_recommendations(self, user_id: str, transactions: List[str], model, n=5):
+        books_to_predict = [book_id for book_id in self.product_ids if book_id not in transactions]
+        predictions = []
+        
+        for book_id in books_to_predict:
+            pred = model.predict(user_id, book_id)
+            predictions.append((book_id, pred.est))
+        
+        pred_products = []
+        # sort predictions
+        predictions.sort(key=lambda x: x[1], reverse=True)
+        for book_id, confidence in predictions[:n]:
+            product = self.id_to_products[book_id]
+            pred_products.append(product)
+            
+        return pred_products
+        
+
+    def recommend_from_past(self, transactions: List[str], n=10):
+        """
+        Calls for each transaction the recommend_from_single method.
+        Gives Priority if seen multiple recommendations.
+        Shuffle and returns :n
+        """
+        recs = set()
+        recs_seen_times = {}
+        products_dictionary = {}
+        
+        # Deprecated.
+        # if(len(transactions) > 2):
+        #     return self.collaborativestore_predict_population(
+        #         transactions, n=n
+        #     )
+        
+        for transaction in transactions:
+            recs = self.recommend_from_single(transaction)
+            for rec_id, confidence in recs:
+                
+                if rec_id in recs:
+                    recs_seen_times[rec_id['id']] += 1
+                else:
+                    products_dictionary[rec_id['id']] = rec_id
+                    recs_seen_times[rec_id['id']] = 1
+        
+        for rec_id in recs_seen_times:
+            recs.append((products_dictionary[rec_id], recs_seen_times[rec_id]))
+            
+        recs = list(recs)
+        
+        recs.sort(key=lambda x: x[1], reverse=True)
+        return recs
+    
+
+
+
+
