@@ -3,6 +3,11 @@ numpy
 scikit-surprise
 scikit-learn
 streamlit
-
-
+matplotlib
+seaborn
+gensim
+scipy==1.12 
+summa
+spacy
+en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.3.0/en_core_web_sm-3.3.0-py3-none-any.wh
 
