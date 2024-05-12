@@ -26,6 +26,8 @@ product_data = {
 }
 
 
+
+
 class RecommendationAbstract():
     strategy_name: str = "REQUIRES IMPLEMENTATION"
     version: str = "REQUIRES IMPLEMENTATION"
@@ -1201,5 +1203,67 @@ class KNNWithMeansRecommender(RecommendationAbstract):
     
 
 
+
+cosineSimilarRecommender = CosineSimilarityRecommender
+# cosineSimilarRecommender.load()
+
+wordVecBodyRecommender = WordVecBodyRecommender
+# wordVecBodyRecommender.load()
+
+titleWordVecTitleRecommender = TitleWordVecTitleyRecommender
+# titleWordVecTitleRecommender.load()
+
+titleWordVectRecommender2 = TitleWordVecTitleyRecommenderV2
+
+
+engines = {
+    "cosine_similarity": {
+        "title": "Cosine Similarity",
+        "engine": cosineSimilarRecommender
+    },
+    "wordvec_body": {
+        "title": "WordVec Body",
+        "engine": wordVecBodyRecommender
+    },
+    "wordvec_title": {
+        "title": "WordVec Title",
+        "engine": titleWordVecTitleRecommender
+    },
+    "word_vec_title_v2": {
+        "title": "WordVec Title V2",
+        "engine": titleWordVectRecommender2
+    
+    },
+    "KNN Basic": {
+        "title": "KNN Basic",
+        "engine": KNNBasicRecommender
+    },
+    "matrix_factorization KNNWithMeans": {
+        "title": "Base KNNWithMeans",
+        "engine": KNNWithMeansRecommender
+    },
+    
+    "matrix_factorization KNNWithZscore": {
+        "title": "Base KNNWithMeans",
+        "engine": KNNWithZScoreRecommender
+    },
+    "matrix_factorization KNNWithBaseline": {
+        "title": "Base KNNWithMeans",
+        "engine": KNNWithBaselineRecommender
+    },
+    "matrix_factorization Means Recommender": {
+        "title": "KNN Means reocmmender",
+        "engine": KNNWithMeansRecommender
+    },   
+    
+    "matrix_factorization SVD": {
+        "title": "Base Algorithm",
+        "engine": cosineSimilarRecommender
+    },
+    "matrix_factorization SVD++": {
+        "title": "Base Algorithm",
+        "engine": cosineSimilarRecommender
+    },
+}
 
 
