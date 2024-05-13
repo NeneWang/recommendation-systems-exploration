@@ -571,6 +571,8 @@ surprise.similarities.cosine()
 Can you train them? How does it work?
 
 
+Does it even have emthods?
+
 
 
 
