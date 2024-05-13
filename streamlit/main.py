@@ -22,61 +22,6 @@ transactions_filepath = product_data["transactions_filepath"]
 products_df = pd.read_csv(products_filepath)
 training_transactions_df = pd.read_csv(transactions_filepath)
 
-cosineSimilarRecommender = CosineSimilarityRecommender
-# cosineSimilarRecommender.load()
-
-wordVecBodyRecommender = WordVecBodyRecommender
-# wordVecBodyRecommender.load()
-
-titleWordVecTitleRecommender = TitleWordVecTitleyRecommender
-# titleWordVecTitleRecommender.load()
-
-titleWordVectRecommender2 = TitleWordVecTitleyRecommenderV2
-
-
-engines = {
-    "cosine_similarity": {
-        "title": "Cosine Similarity",
-        "engine": cosineSimilarRecommender
-    },
-    "wordvec_body": {
-        "title": "WordVec Body",
-        "engine": wordVecBodyRecommender
-    },
-    "wordvec_title": {
-        "title": "WordVec Title",
-        "engine": titleWordVecTitleRecommender
-    },
-    "word_vec_title_v2": {
-        "title": "WordVec Title V2",
-        "engine": titleWordVectRecommender2
-    
-    },
-    "KNN Basic": {
-        "title": "KNN Basic",
-        "engine": cosineSimilarRecommender
-    },
-    
-    "matrix_factorization SVD": {
-        "title": "Base Algorithm",
-        "engine": cosineSimilarRecommender
-    },
-    "matrix_factorization SVD++": {
-        "title": "Base Algorithm",
-        "engine": cosineSimilarRecommender
-    },
-    "matrix_factorization KNNWithMeans": {
-        "title": "Base KNNWithMeans",
-        "engine": cosineSimilarRecommender
-    },
-    
-    "matrix_factorization KNNWithZscore": {
-        "title": "Base KNNWithMeans",
-        "engine": cosineSimilarRecommender
-    },
-    
-}
-
 # Define the available product cases
 PRODUCT_CASES = {
     "books": {

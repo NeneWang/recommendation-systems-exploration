@@ -718,7 +718,7 @@ class KNNBasicRecommender(RecommendationAbstract):
         recs.sort(key=lambda x: x[1], reverse=True)
         return recs
     
-class KNNWithZScoreRecommender(RecommendationAbstract):
+class KNNWithZScoreRecommender(KNNBasicRecommender):
     strategy_name: str = "KNN With ZScore"
     slug_name: str = "knn_with_zscore"
     version: str = "v1"
@@ -729,7 +729,7 @@ class KNNWithZScoreRecommender(RecommendationAbstract):
     sim_options = {"name": "pearson_baseline", "user_based": False}
     algorithm = KNNWithZScore
     
-class KNNWithBaselineRecommender(RecommendationAbstract):
+class KNNWithBaselineRecommender(KNNBasicRecommender):
     strategy_name: str = "KNN With Means"
     slug_name: str = "knn_with_baseline"
     version: str = "v1"
@@ -740,7 +740,7 @@ class KNNWithBaselineRecommender(RecommendationAbstract):
     sim_options = {"name": "pearson_baseline", "user_based": False}
     algorithm = KNNBaseline
     
-class KNNWithMeansRecommender(RecommendationAbstract):
+class KNNWithMeansRecommender(KNNBasicRecommender):
     strategy_name: str = "KNN With Means"
     slug_name: str = "knn_with_means"
     version: str = "v1"
@@ -752,7 +752,7 @@ class KNNWithMeansRecommender(RecommendationAbstract):
     sim_options = {"name": "pearson_baseline", "user_based": False}
     algorithm = KNNBaseline
 
-class SimilutudeRecommender(RecommendationAbstract):
+class SimilutudeRecommender(KNNBasicRecommender):
     """
     Features trainning using KNN model but purely recommendations are purely based on cosine similarity.
     Supports Extending. Recommnedations (that can be used by other Recommender classes) to find neighbors.
