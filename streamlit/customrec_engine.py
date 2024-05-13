@@ -1,7 +1,6 @@
 
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from typing import List, Dict, Tuple
 import random
 import pickle
@@ -11,8 +10,11 @@ import string
 import re
 import spacy
 from surprise import KNNBasic, KNNWithZScore, KNNBaseline, KNNWithMeans
+from surprise import KNNBasic, SVD, SVDpp, NMF
+from surprise.prediction_algorithms.slope_one import SlopeOne
+from surprise.prediction_algorithms.co_clustering import CoClustering
 
-from surprise import Dataset, Reader, SVD
+from surprise import Dataset, Reader
 from surprise.model_selection import train_test_split
 
 product_data = {
@@ -942,61 +944,238 @@ class CosineSimilitude(SimilutudeRecommender):
     sim_options = {"name": "cosine", "user_based": False}
     algorithm = KNNBasic
     
+class MatrixRecommender(RecommendationAbstract):
+    strategy_name: str = "Matrix Basic"
+    slug_name: str = "matrix"
+    version: str = "v1"
+    details: str = "REQUIRES IMPLEMENTATION"
+    link: str = "REQUIRES IMPLEMENTATION"
+    supports_single_recommendation: bool = True
+    supports_past_recommendation: bool = True
+    algorithm=SVD
     
-cosineSimilarRecommender = CosineSimilarityRecommender
-wordVecBodyRecommender = WordVecBodyRecommender
-titleWordVecTitleRecommender = TitleWordVecTitleyRecommender
-titleWordVectRecommender2 = TitleWordVecTitleyRecommenderV2
+    def __init__(self, products: pd.DataFrame, product_data: dict, similitudeRec=SimilutudeRecommender, transactions = None):
+        super().__init__(products, product_data)
+        self.products = products
+        self.model = None
+        
+        # Get the product ids and store them.
+        self.product_ids = self.products['id'].unique()
+        self.all_transactions_df = transactions
+        self.similitudeRec = similitudeRec(products, product_data, transactions)
+        
+    def train(self, transactions, auto_save=True, dont_save_self_state=False) :
+        self.similitudeRec.train(transactions)
+                
+        model = self.algorithm()
+        
+        reader = Reader(rating_scale=(1, 5))
+        
+        data = Dataset.load_from_df(transactions[['user_id', 'product_id', 'rate']], reader)
+        
+        model.fit(data.build_full_trainset())
+        
+        if dont_save_self_state:
+            return model
+        
+        self.model = model
+        self.all_transactions_df = transactions
+        # self.accuracy = accuracy.rmse(model.test(data.build_full_trainset().build_testset()), verbose=True)
+        
+        if auto_save:
+            self.save()
+            
+        return model
+        
+        
+    def get_filename(self):
+        return "models/" + self.slug_name + self.product_data["unique_name"] + ".pik"
+    
+    def save(self):
+        # Store self.pt
+        self.similitudeRec.save()
+        filename = self.get_filename()
+        model_file = open(filename, 'wb')
+        pickle.dump(self.model, model_file)
+        model_file.close()
+        
+    def load(self, auto_create=True):
+        self.similitudeRec.load(auto_create=auto_create)
+        filename = self.get_filename()
+        model_file = open(filename, 'rb')
+        self.model = pickle.load(model_file)
+        model_file.close()
+
+    def recommend_from_single(self, product_id: str, n=5) -> List[Tuple[dict, float]]:
+        """
+        
+        # To optimize things, SVD takes a Similitude type recommender. Which posses the method (receive product neighbors.)
+        """
+        recommendation_list: List[tuple[dict, float]] = []
+        # neighbors = self.model.get_neighbors(product_inner_id, k=n*2)
+        neighbors = self.similitudeRec.getNeighbors(product_id, n=n*2)
+        
+        # for each neighbor, try to predict and prioritize given a user in all_transactions_that shared that book as well.
+        for neighbor_book_inner_id in neighbors:
+            
+            product_serie = self.products.iloc[neighbor_book_inner_id]
+            neighbor_book_id = product_serie['id']
+            
+            if (neighbor_book_id == product_id):
+                continue
+            
+            relevant_transactions = self.all_transactions_df[self.all_transactions_df['product_id'] == neighbor_book_id]
+            relevant_transactions = relevant_transactions.sort_values(by='rate', ascending=False)
+            # remove where  product_id product_id
+            if len(relevant_transactions) == 0:
+                continue
+            
+            
+            user_id = relevant_transactions.iloc[0]['user_id']
+            
+            pred = self.model.predict(user_id, neighbor_book_id)
+            recommendation_list.append((self.id_to_products[neighbor_book_id], pred.est))
+        
+        # sort recommendations
+        recommendation_list.sort(key=lambda x: x[1], reverse=True)
+        return recommendation_list[:n]
+
+    def collaborativestore_predict_population(self, transactions: List[str], n=5):
+        """
+        Adds the transactions to the use history to be considered when training the model. Doesnt not save the model with this transactions,
+        proceeds to use the models to create recommendations. This is pattern was added for KNN and Matrix Factorizations
+        """
+        # Add transactions to the self.transactions_df as a new user
+        transaction_rows = []
+        random_user_id = "user" + str(random.randint(0, 1000000))
+        for transaction in transactions:
+            transaction_rows.append({'user_id': 'user_id', 'product_id': transaction, 'rate': 5})
+        
+        # Convert to a DataFrame
+        new_transactions_df = pd.DataFrame(transaction_rows)
+
+        # Append using concat
+        all_transactions_df: pd.Dataframe = pd.concat([self.all_transactions_df, new_transactions_df], ignore_index=True)
+        
+        model = self.train(all_transactions_df, dont_save_self_state=True)
+        
+        return self.predict_recommendations(random_user_id, transactions, model, n)
+    
+    def predict_recommendations(self, user_id: str, transactions: List[str], model, n=5):
+        books_to_predict = [book_id for book_id in self.product_ids if book_id not in transactions]
+        predictions = []
+        
+        for book_id in books_to_predict:
+            pred = model.predict(user_id, book_id)
+            predictions.append((book_id, pred.est))
+        
+        pred_products = []
+        # sort predictions
+        predictions.sort(key=lambda x: x[1], reverse=True)
+        for book_id, confidence in predictions[:n]:
+            product = self.id_to_products[book_id]
+            pred_products.append(product)
+            
+        return pred_products
+        
+
+    def recommend_from_past(self, transactions: List[str], n=10):
+        """
+        Calls for each transaction the recommend_from_single method.
+        Gives Priority if seen multiple recommendations.
+        Shuffle and returns :n
+        """
+        recs = set()
+        recs_seen_times = {}
+        products_dictionary = {}
+        
+        for transaction in transactions:
+            recs = self.recommend_from_single(transaction)
+            for rec_id, confidence in recs:
+                
+                if rec_id in recs:
+                    recs_seen_times[rec_id['id']] += confidence
+                else:
+                    products_dictionary[rec_id['id']] = rec_id
+                    recs_seen_times[rec_id['id']] = confidence
+        
+        for rec_id in recs_seen_times:
+            recs.append((products_dictionary[rec_id], recs_seen_times[rec_id]))
+            
+        recs = list(recs)
+        
+        recs.sort(key=lambda x: x[1], reverse=True)
+        return recs
+
+class SVDMatrixRecommender(MatrixRecommender):
+    strategy_name: str = "SVD Factorization"
+    slug_name: str = "svd_recommender"
+    version: str = "v1"
+    details: str = "REQUIRES IMPLEMENTATION"
+    link: str = "REQUIRES IMPLEMENTATION"
+    supports_single_recommendation: bool = True
+    supports_past_recommendation: bool = True
+    algorithm=SVD
+    
+class SVDPPMatrixRecommender(MatrixRecommender):
+    strategy_name: str = "SVD PP Matrix Factorization"
+    slug_name: str = "svdpp_recommender"
+    version: str = "v1"
+    details: str = "REQUIRES IMPLEMENTATION"
+    link: str = "REQUIRES IMPLEMENTATION"
+    supports_single_recommendation: bool = True
+    supports_past_recommendation: bool = True
+    algorithm=SVDpp
+    
+class NMFMatrixRecommender(MatrixRecommender):
+    strategy_name: str = "NMF Matrix Factorization"
+    slug_name: str = "nmf_matrix_factorization"
+    version: str = "v1"
+    details: str = "REQUIRES IMPLEMENTATION"
+    link: str = "REQUIRES IMPLEMENTATION"
+    supports_single_recommendation: bool = True
+    supports_past_recommendation: bool = True
+    algorithm=NMF
+
+class SlopeOneRecommender(MatrixRecommender):
+    strategy_name: str = "Slope One Recommender"
+    slug_name: str = "slope_recommender"
+    version: str = "v1"
+    details: str = "REQUIRES IMPLEMENTATION"
+    link: str = "REQUIRES IMPLEMENTATION"
+    supports_single_recommendation: bool = True
+    supports_past_recommendation: bool = True
+    algorithm=SlopeOne
+    
+class CoClusteringRecommender(MatrixRecommender):
+    strategy_name: str = "Slope One Recommender"
+    slug_name: str = "slope_recommender"
+    version: str = "v1"
+    details: str = "REQUIRES IMPLEMENTATION"
+    link: str = "REQUIRES IMPLEMENTATION"
+    supports_single_recommendation: bool = True
+    supports_past_recommendation: bool = True
+    algorithm=CoClustering
+
+engines_list = [
+    CosineSimilarityRecommender, WordVecBodyRecommender, TitleWordVecTitleyRecommender, KNNBasicRecommender, KNNWithMeansRecommender, KNNWithZScoreRecommender, KNNWithBaselineRecommender, MatrixRecommender, SVDMatrixRecommender, SVDPPMatrixRecommender, NMFMatrixRecommender, SlopeOneRecommender, CoClusteringRecommender
+]
 
 
-engines = {
-    "cosine_similarity": {
-        "title": "Cosine Similarity",
-        "engine": cosineSimilarRecommender
-    },
-    "wordvec_body": {
-        "title": "WordVec Body",
-        "engine": wordVecBodyRecommender
-    },
-    "wordvec_title": {
-        "title": "WordVec Title",
-        "engine": titleWordVecTitleRecommender
-    },
-    "word_vec_title_v2": {
-        "title": "WordVec Title V2",
-        "engine": titleWordVectRecommender2
-    
-    },
-    "KNN Basic": {
-        "title": "KNN Basic",
-        "engine": KNNBasicRecommender
-    },
-    "matrix_factorization KNNWithMeans": {
-        "title": "Base KNNWithMeans",
-        "engine": KNNWithMeansRecommender
-    },
-    
-    "matrix_factorization KNNWithZscore": {
-        "title": "Base KNNWithMeans",
-        "engine": KNNWithZScoreRecommender
-    },
-    "matrix_factorization KNNWithBaseline": {
-        "title": "Base KNNWithMeans",
-        "engine": KNNWithBaselineRecommender
-    },
-    "matrix_factorization Means Recommender": {
-        "title": "KNN Means reocmmender",
-        "engine": KNNWithMeansRecommender
-    },   
-    
-    "matrix_factorization SVD": {
-        "title": "Base Algorithm",
-        "engine": cosineSimilarRecommender
-    },
-    "matrix_factorization SVD++": {
-        "title": "Base Algorithm",
-        "engine": cosineSimilarRecommender
-    },
-}
 
+
+# engines = {
+#     "cosine_similarity": {
+#         "title": CosineSimilarityRecommender.strategy_name,
+#         "engine": CosineSimilarityRecommender
+#     },...
+# }
+
+engines = {}
+
+for engine in engines_list:
+    engines[engine.slug_name] = {
+        "title": engine.strategy_name,
+        "engine": engine
+    }
 
