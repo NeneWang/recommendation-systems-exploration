@@ -1,8 +1,21 @@
 # Explorations in Recommendation Systems
 
+```
+git pull -X theirs
+```
+
 
 
 ## Installation
+
+Download also the proper spacy movdel:
+
+```
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt --upgrade
+python -m spacy download en
+```
 
 Please download the books and datasets from the following links:
 

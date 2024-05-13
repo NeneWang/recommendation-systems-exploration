@@ -559,6 +559,23 @@ pprint.pprint(rec)
 
 ```
 
+### Simitude Baed Models:
+
+- Seems that the similitude models. doenst seem to be a clear model there?
+
+```python
+surprise.similarities.cosine()
+```
+
+
+Can you train them? How does it work?
+
+
+
+
+
+
+
 
 
 
