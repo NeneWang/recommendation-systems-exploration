@@ -1,25 +1,5 @@
-## Report for Check in 1
+# Check 2
 
-
-[The Project Repository](https://github.com/NeneWang/recommendation-systems-exploration/tree/master/final_project_exploration) 
-
-Please submit a link to the dataset you plan to use, and at least 2 high-level analyses (Section 3 of the project writeup). For each analysis, please submit at minimum:
-
-The question you plan to answer
-A visualization you plan to create, if applicable
-A statistical test you plan to use, if applicable
-You do not have to have performed the analyses yet.
-
-I will leave feedback on your suggested analyses and if any other analyses might be appropriate for your dataset.
-
-
-## Question and Plan
-
-
-Given the following dataset: available at https://www.kaggle.com/datasets/antonkozyriev/game-recommendations-on-steam?select=recommendations.csv
-
-
-### Data
 
 games.csv
 
@@ -57,24 +37,37 @@ users.csv
 | products | int           | Count of purchased products | 1       | Continuous |
 | reviews  | int           | Count of published reviews  | 0       | Continuous |
 
+
+Notes:
+- I am reducing the size so that it is maneagable from my side (original data scales to gb size reduced to first 150 mb)
+  - Reduction strategy attached as `split_data.ipynb`
+- 
+
 ## *Questions I want to answer
 
 - Find if there is a correlation between the number of reviews and the number of products purchased by a user.
   
+![](./../img/2024-05-13-23-21-03.png)
+
+> This suggest a weak correlation between the number of reviews and the number of products purchased by a user.
+> Also suggest that it is statistical significant, such that it is not due to random chance.
+  
 - Does players with more hours played provide more helpful reviews? What is the relation between hours played and the review result?
+
+![](./../img/2024-05-13-23-39-21.png)
+> No correlation between hours played and helpful reviews.
+
 - Find if there is an relation with the users count of games and total hours played and the reviews posted. 
+
+
+
+
 - Find if there are relations between: rating, prices, reviews, positive ratio, ratio
 - Find the clusters of users based on reviews provided and activity.
 - Find the clusters of games based on the reviews
 
 
-### Plan: Find the clusters of users based on reviews provided and activity.
-Given the following View of the Data Users focused data find the clusters and try to find the clusters
 
-e.g. 
-A join table of user, products, totla_hours_played, average_recommendation_rating and total_reviews
-
-- What does the cluster look of users look like based on the joined table of users with total hours p
 
 ## Visualization Planned
 
@@ -88,15 +81,7 @@ A join table of user, products, totla_hours_played, average_recommendation_ratin
   - Users count of games and total hours played and the reviews posted
   - Rating, prices, reviews, positive ratio, ratio
 
-## Statistical Tests
 
-- If any relationships are found between the variables, I will use a correlation test to determine the strength of the relationship.
-- If clusters are found I will try to use some intuition to find the relationship and run the appropriate statistical tests to understand the clusters.
+# Notes:
 
-
-
-
-- - T Tests
-- - Anova
-- 
-
+ - 
