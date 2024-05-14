@@ -1,5 +1,16 @@
 # Check 2
 
+[The Project Repository](https://github.com/NeneWang/recommendation-systems-exploration/tree/master/final_project_exploration) 
+
+
+Given the following dataset: available at https://www.kaggle.com/datasets/antonkozyriev/game-recommendations-on-steam?select=recommendations.csv
+
+
+Notes:
+- I am reducing the size so that it is maneagable from my side (original data is in the orders of gb(s) size 
+ Data was reduced to first 150 mb)
+  - Reduction strategy attached as `split_data.ipynb`
+
 
 games.csv
 
@@ -37,11 +48,6 @@ users.csv
 | products | int           | Count of purchased products | 1       | Continuous |
 | reviews  | int           | Count of published reviews  | 0       | Continuous |
 
-
-Notes:
-- I am reducing the size so that it is maneagable from my side (original data scales to gb size reduced to first 150 mb)
-  - Reduction strategy attached as `split_data.ipynb`
-- 
 
 ## *Questions I want to answer
 
