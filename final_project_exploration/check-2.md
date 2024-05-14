@@ -59,7 +59,9 @@ Notes:
 
 - Find if there is an relation with the users count of games and total hours played and the reviews posted. 
 
+![](./../img/2024-05-13-23-49-12.png)
 
+> No correlation nor evidence
 
 
 - Find if there are relations between: rating, prices, reviews, positive ratio, ratio
