@@ -37,7 +37,7 @@ class RecommendationAbstract():
     supports_single_recommendation: bool = "REQUIRES IMPLEMENTATION"
     supports_past_recommendation: bool = "REQUIRES IMPLEMENTATION"
 
-    def __init__(self, products, product_data):
+    def __init__(self, products, product_data, transactions=None):
         self.products = products
         self.product_data = product_data
         self.model = None
@@ -45,7 +45,7 @@ class RecommendationAbstract():
         self.id_to_products = {}
         for product in self.products.to_dict(orient='records'):
             self.id_to_products[product['id']] = product
-
+    
 
     def loadModel(self, model_code):
         """
@@ -53,7 +53,7 @@ class RecommendationAbstract():
         """
         self.model = model_code
 
-    def train(self, verbose=False, transactions_train=None, users_train=None):
+    def train(self, transactions, auto_save=True):
         """
         Train the model
         """
@@ -118,12 +118,13 @@ class CosineSimilarityRecommender(RecommendationAbstract):
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
-    def __init__(self, products, product_data):
+    def __init__(self, products, product_data, transactions=None):
         super().__init__(products, product_data)
         self.products = products
+        
         self.pt = []
         self.sim_score = None
-        
+    
     def train(self, transactions, auto_save=True):
         self.pt = transactions.pivot_table(index="product_id", columns="user_id", values="rate")
         self.pt.fillna(0, inplace=True)
@@ -253,7 +254,7 @@ class WordVecBodyRecommender(RecommendationAbstract):
         recommendations = self.recommend_books_updated(past_text, top_n=n)
         return recommendations
         
-        
+            
     def get_filename(self):
         return  "models/" + self.slug_name + self.product_data["unique_name"] + ".model"
 
@@ -295,7 +296,8 @@ class TitleWordVecTitleyRecommender(RecommendationAbstract):
         self.products_df = products
         self.model = None
         self.train()
-
+    
+    
     def train(self, auto_save=False):
         """
         Train the Word2Vec model on the book titles.
@@ -390,7 +392,8 @@ class TitleWordVecTitleyRecommenderV2(RecommendationAbstract):
         self.train()
         self.nlp = spacy.load("en_core_web_sm")
         self.useKeyword = useKeyword # Otherwise uses the list of keywords concatenated found.
-
+    
+    
     def train(self, auto_save=False):
         """
         Train the Word2Vec model on the book titles.
@@ -1161,15 +1164,6 @@ engines_list = [
     CosineSimilarityRecommender, WordVecBodyRecommender, TitleWordVecTitleyRecommender, KNNBasicRecommender, KNNWithMeansRecommender, KNNWithZScoreRecommender, KNNWithBaselineRecommender, MatrixRecommender, SVDMatrixRecommender, SVDPPMatrixRecommender, NMFMatrixRecommender, SlopeOneRecommender, CoClusteringRecommender
 ]
 
-
-
-
-# engines = {
-#     "cosine_similarity": {
-#         "title": CosineSimilarityRecommender.strategy_name,
-#         "engine": CosineSimilarityRecommender
-#     },...
-# }
 
 engines = {}
 
