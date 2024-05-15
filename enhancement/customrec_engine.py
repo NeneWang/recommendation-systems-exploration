@@ -53,7 +53,7 @@ class RecommendationAbstract():
         """
         self.model = model_code
 
-    def train(self, transactions, auto_save=True):
+    def train(self, auto_save=True):
         """
         Train the model
         """
@@ -121,11 +121,12 @@ class CosineSimilarityRecommender(RecommendationAbstract):
     def __init__(self, products, product_data, transactions=None):
         super().__init__(products, product_data)
         self.products = products
-        
+        self.all_transactions_df = transactions
         self.pt = []
         self.sim_score = None
     
-    def train(self, transactions, auto_save=True):
+    def train(self, auto_save=True):
+        transactions = self.all_transactions_df
         self.pt = transactions.pivot_table(index="product_id", columns="user_id", values="rate")
         self.pt.fillna(0, inplace=True)
         self.sim_score = cosine_similarity(self.pt)
@@ -195,7 +196,7 @@ class WordVecBodyRecommender(RecommendationAbstract):
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
-    def __init__(self, products, product_data):
+    def __init__(self, products, product_data, transactions=None):
         """
         Initialize the recommender with a pre-trained Word2Vec model and a dataframe of books.
         """
@@ -288,7 +289,7 @@ class TitleWordVecTitleyRecommender(RecommendationAbstract):
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
-    def __init__(self, products, product_data):
+    def __init__(self, products, product_data, transactions=None):
         """
         Initialize the recommender with a pre-trained Word2Vec model and a dataframe of books.
         """
@@ -382,7 +383,7 @@ class TitleWordVecTitleyRecommenderV2(RecommendationAbstract):
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
-    def __init__(self, products, product_data, useKeyword=True):
+    def __init__(self, products, product_data, useKeyword=True, transactions=None):
         """
         Initialize the recommender with a pre-trained Word2Vec model and a dataframe of books.
         """
@@ -575,11 +576,11 @@ class KNNBasicRecommender(RecommendationAbstract):
         self.product_ids = self.products['id'].unique()
         self.all_transactions_df = transactions
         
-    def train(self, transactions, auto_save=True, dont_save_self_state=False):
+    def train(self, auto_save=True, dont_save_self_state=False):
         model = self.algorithm(sim_options=self.sim_options)
         
         reader = Reader(rating_scale=(1, 5))
-        
+        transactions = self.all_transactions_df
         data = Dataset.load_from_df(transactions[['user_id', 'product_id', 'rate']], reader)
         
         model.fit(data.build_full_trainset())
@@ -779,9 +780,9 @@ class SimilutudeRecommender(KNNBasicRecommender):
         self.product_ids = self.products['id'].unique()
         self.all_transactions_df = transactions
         
-    def train(self, transactions, auto_save=True, dont_save_self_state=False):
+    def train(self, auto_save=True, dont_save_self_state=False):
         model = self.algorithm(sim_options=self.sim_options)
-        
+        transactions = self.all_transactions_df
         reader = Reader(rating_scale=(1, 5))
         
         data = Dataset.load_from_df(transactions[['user_id', 'product_id', 'rate']], reader)
@@ -967,7 +968,8 @@ class MatrixRecommender(RecommendationAbstract):
         self.all_transactions_df = transactions
         self.similitudeRec = similitudeRec(products, product_data, transactions)
         
-    def train(self, transactions, auto_save=True, dont_save_self_state=False) :
+    def train(self, auto_save=True, dont_save_self_state=False) :
+        transactions = self.all_transactions_df
         self.similitudeRec.train(transactions)
                 
         model = self.algorithm()
@@ -1161,7 +1163,7 @@ class CoClusteringRecommender(MatrixRecommender):
     algorithm=CoClustering
 
 engines_list = [
-    CosineSimilarityRecommender, WordVecBodyRecommender, TitleWordVecTitleyRecommender, KNNBasicRecommender, KNNWithMeansRecommender, KNNWithZScoreRecommender, KNNWithBaselineRecommender, MatrixRecommender, SVDMatrixRecommender, SVDPPMatrixRecommender, NMFMatrixRecommender, SlopeOneRecommender, CoClusteringRecommender
+    WordVecBodyRecommender, TitleWordVecTitleyRecommender, KNNBasicRecommender, KNNWithMeansRecommender, KNNWithZScoreRecommender, KNNWithBaselineRecommender, MatrixRecommender, SVDMatrixRecommender, SVDPPMatrixRecommender, NMFMatrixRecommender, SlopeOneRecommender, CoClusteringRecommender
 ]
 
 
