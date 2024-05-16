@@ -17,16 +17,62 @@ from surprise.prediction_algorithms.co_clustering import CoClustering
 from surprise import Dataset, Reader
 from surprise.model_selection import train_test_split
 
-product_data = {
-    "data_context": "books",
-    "product_filepath": "data/products_books_v1_10_10.csv",
-    "transactions_filepath": "data/transactions_books_v1_10_10.csv",
-    "features": ["id", "product_title", "product_image", "product_soup", "product_images"],
-    "version": "1.0",
-    "unique_name": "_books_v1_10_10",
+PRODUCT_DATAS = [
+    {
+        "data_context": "books",
+        "product_filepath": "data/products_books_v1_10_10.csv",
+        "transactions_filepath": "data/transactions_books_v1_10_10.csv",
+        "features": ["id", "product_title", "product_image", "product_soup", "product_images"],
+        "version": "1.0",
+        "unique_name": "_books_v1_10_10",
+    },
+    {
+        'data_context': 'books',
+        'product_count': 19897,
+        'product_features': ['id',
+                            'product_title',
+                            'product_image',
+                            'product_soup',
+                            'count'],
+        'product_filepath': 'data/products_books_v2_t4_p8.csv',
+        'product_unique_count': 19897,
+        'transaction_count': 477737,
+        'transaction_features': ['id', 'user_id', 'product_id', 'rate'],
+        'transactions_filepath': 'data/transactions_books_v2_t4_p8.csv',
+        'unique_name': '_books_v2_t4_p8',
+        'user_count': 14191,
+        'user_features': ['id', 'details_soup'],
+        'user_filepath': 'data/users_books_v2_t4_p8.csv',
+        'user_unique_count': 14191,
+        'version': '2'
+    },
+   {
+       'data_context': 'games',
+    'product_count': 2274,
+    'product_features': ['product_id',
+                        'product_title',
+                        'product_price',
+                        'product_soup',
+                        'product_tags',
+                        'count',
+                        'id'],
+    'product_filepath': 'data/products_games_v2_t6_p12.csv',
+    'product_unique_count': 2274,
+    'transaction_count': 1698830,
+    'transaction_features': ['id', 'user_id', 'product_id', 'rate'],
+    'transactions_filepath': 'data/transactions_games_v2_t6_p12.csv',
+    'unique_name': '_games_v2_t6_p12',
+    'user_count': 149434,
+    'user_features': ['id', 'details_soup'],
+    'user_filepath': 'data/users_games_v2_t6_p12.csv',
+    'user_unique_count': 149434,
+    'version': '2'
 }
 
 
+                 ]
+
+product_data = PRODUCT_DATAS[0]
 
 
 class RecommendationAbstract():
