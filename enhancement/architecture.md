@@ -34,6 +34,17 @@ products:
 | product_images | str\nan | List of images of the product             |
 | product_tags   | str\nan | List of tags of the product, sep by comma |
 
+Users:
+
+
+| name         | type | description                   |
+| ------------ | ---- | ----------------------------- |
+| id           | str  | Unique identifier of the user |
+| age          | int  | Age of                        |
+| details_soup | str  | All Aggregated Description of |
+
+
+
 **Products Metadata/Structure Organization**
 
 ```json
