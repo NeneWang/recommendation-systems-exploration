@@ -1027,7 +1027,6 @@ class MatrixRecommender(RecommendationAbstract):
         
         self.model = model
         self.all_transactions_df = transactions
-        # self.accuracy = accuracy.rmse(model.test(data.build_full_trainset().build_testset()), verbose=True)
         
         if auto_save:
             self.save()
