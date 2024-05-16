@@ -17,16 +17,62 @@ from surprise.prediction_algorithms.co_clustering import CoClustering
 from surprise import Dataset, Reader
 from surprise.model_selection import train_test_split
 
-product_data = {
-    "data_context": "books",
-    "product_filepath": "data/products_books_v1_10_10.csv",
-    "transactions_filepath": "data/transactions_books_v1_10_10.csv",
-    "features": ["id", "product_title", "product_image", "product_soup", "product_images"],
-    "version": "1.0",
-    "unique_name": "_books_v1_10_10",
+PRODUCT_DATAS = [
+    {
+        "data_context": "books",
+        "product_filepath": "data/products_books_v1_10_10.csv",
+        "transactions_filepath": "data/transactions_books_v1_10_10.csv",
+        "features": ["id", "product_title", "product_image", "product_soup", "product_images"],
+        "version": "1.0",
+        "unique_name": "_books_v1_10_10",
+    },
+    {
+        'data_context': 'books',
+        'product_count': 19897,
+        'product_features': ['id',
+                            'product_title',
+                            'product_image',
+                            'product_soup',
+                            'count'],
+        'product_filepath': 'data/products_books_v2_t4_p8.csv',
+        'product_unique_count': 19897,
+        'transaction_count': 477737,
+        'transaction_features': ['id', 'user_id', 'product_id', 'rate'],
+        'transactions_filepath': 'data/transactions_books_v2_t4_p8.csv',
+        'unique_name': '_books_v2_t4_p8',
+        'user_count': 14191,
+        'user_features': ['id', 'details_soup'],
+        'user_filepath': 'data/users_books_v2_t4_p8.csv',
+        'user_unique_count': 14191,
+        'version': '2'
+    },
+   {
+       'data_context': 'games',
+    'product_count': 2274,
+    'product_features': ['product_id',
+                        'product_title',
+                        'product_price',
+                        'product_soup',
+                        'product_tags',
+                        'count',
+                        'id'],
+    'product_filepath': 'data/products_games_v2_t6_p12.csv',
+    'product_unique_count': 2274,
+    'transaction_count': 1698830,
+    'transaction_features': ['id', 'user_id', 'product_id', 'rate'],
+    'transactions_filepath': 'data/transactions_games_v2_t6_p12.csv',
+    'unique_name': '_games_v2_t6_p12',
+    'user_count': 149434,
+    'user_features': ['id', 'details_soup'],
+    'user_filepath': 'data/users_games_v2_t6_p12.csv',
+    'user_unique_count': 149434,
+    'version': '2'
 }
 
 
+                 ]
+
+product_data = PRODUCT_DATAS[0]
 
 
 class RecommendationAbstract():
@@ -53,7 +99,7 @@ class RecommendationAbstract():
         """
         self.model = model_code
 
-    def train(self, transactions, auto_save=True):
+    def train(self, auto_save=False):
         """
         Train the model
         """
@@ -121,11 +167,12 @@ class CosineSimilarityRecommender(RecommendationAbstract):
     def __init__(self, products, product_data, transactions=None):
         super().__init__(products, product_data)
         self.products = products
-        
+        self.all_transactions_df = transactions
         self.pt = []
         self.sim_score = None
     
-    def train(self, transactions, auto_save=True):
+    def train(self, auto_save=False):
+        transactions = self.all_transactions_df
         self.pt = transactions.pivot_table(index="product_id", columns="user_id", values="rate")
         self.pt.fillna(0, inplace=True)
         self.sim_score = cosine_similarity(self.pt)
@@ -195,18 +242,18 @@ class WordVecBodyRecommender(RecommendationAbstract):
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
-    def __init__(self, products, product_data):
+    def __init__(self, products, product_data, transactions=None):
         """
         Initialize the recommender with a pre-trained Word2Vec model and a dataframe of books.
         """
         super().__init__(products, product_data)
         self.products_df = products
         self.model = None
-        print('id_to_products length', len(self.id_to_products))
+        # print('id_to_products length', len(self.id_to_products))
         self.train()
 
 
-    def train(self, auto_save=True):
+    def train(self, auto_save=False):
         """
         Train the Word2Vec model on the book titles.
         """
@@ -288,7 +335,7 @@ class TitleWordVecTitleyRecommender(RecommendationAbstract):
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
-    def __init__(self, products, product_data):
+    def __init__(self, products, product_data, transactions=None):
         """
         Initialize the recommender with a pre-trained Word2Vec model and a dataframe of books.
         """
@@ -382,7 +429,7 @@ class TitleWordVecTitleyRecommenderV2(RecommendationAbstract):
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
-    def __init__(self, products, product_data, useKeyword=True):
+    def __init__(self, products, product_data, useKeyword=True, transactions=None):
         """
         Initialize the recommender with a pre-trained Word2Vec model and a dataframe of books.
         """
@@ -575,11 +622,11 @@ class KNNBasicRecommender(RecommendationAbstract):
         self.product_ids = self.products['id'].unique()
         self.all_transactions_df = transactions
         
-    def train(self, transactions, auto_save=True, dont_save_self_state=False):
+    def train(self, auto_save=False, dont_save_self_state=False):
         model = self.algorithm(sim_options=self.sim_options)
         
         reader = Reader(rating_scale=(1, 5))
-        
+        transactions = self.all_transactions_df
         data = Dataset.load_from_df(transactions[['user_id', 'product_id', 'rate']], reader)
         
         model.fit(data.build_full_trainset())
@@ -639,6 +686,8 @@ class KNNBasicRecommender(RecommendationAbstract):
             # get user_id that top rated the product sort the relevant_transactions
             relevant_transactions = relevant_transactions.sort_values(by='rate', ascending=False)
             
+            if len(relevant_transactions) <= 0:
+                continue
             user_id = relevant_transactions.iloc[0]['user_id']
             
             pred = self.model.predict(user_id, neighbor_book_id)
@@ -696,12 +745,6 @@ class KNNBasicRecommender(RecommendationAbstract):
         recs = set()
         recs_seen_times = {}
         products_dictionary = {}
-        
-        # Deprecated.
-        # if(len(transactions) > 2):
-        #     return self.collaborativestore_predict_population(
-        #         transactions, n=n
-        #     )
         
         for transaction in transactions:
             recs = self.recommend_from_single(transaction)
@@ -779,9 +822,9 @@ class SimilutudeRecommender(KNNBasicRecommender):
         self.product_ids = self.products['id'].unique()
         self.all_transactions_df = transactions
         
-    def train(self, transactions, auto_save=True, dont_save_self_state=False):
+    def train(self, auto_save=False, dont_save_self_state=False):
         model = self.algorithm(sim_options=self.sim_options)
-        
+        transactions = self.all_transactions_df
         reader = Reader(rating_scale=(1, 5))
         
         data = Dataset.load_from_df(transactions[['user_id', 'product_id', 'rate']], reader)
@@ -965,10 +1008,11 @@ class MatrixRecommender(RecommendationAbstract):
         # Get the product ids and store them.
         self.product_ids = self.products['id'].unique()
         self.all_transactions_df = transactions
-        self.similitudeRec = similitudeRec(products, product_data, transactions)
+        self.similitudeRec = similitudeRec(products=products, product_data=product_data, transactions=transactions)
         
-    def train(self, transactions, auto_save=True, dont_save_self_state=False) :
-        self.similitudeRec.train(transactions)
+    def train(self, auto_save=False, dont_save_self_state=False) :
+        transactions = self.all_transactions_df
+        self.similitudeRec.train()
                 
         model = self.algorithm()
         
@@ -983,7 +1027,6 @@ class MatrixRecommender(RecommendationAbstract):
         
         self.model = model
         self.all_transactions_df = transactions
-        # self.accuracy = accuracy.rmse(model.test(data.build_full_trainset().build_testset()), verbose=True)
         
         if auto_save:
             self.save()
@@ -1161,7 +1204,8 @@ class CoClusteringRecommender(MatrixRecommender):
     algorithm=CoClustering
 
 engines_list = [
-    CosineSimilarityRecommender, WordVecBodyRecommender, TitleWordVecTitleyRecommender, KNNBasicRecommender, KNNWithMeansRecommender, KNNWithZScoreRecommender, KNNWithBaselineRecommender, MatrixRecommender, SVDMatrixRecommender, SVDPPMatrixRecommender, NMFMatrixRecommender, SlopeOneRecommender, CoClusteringRecommender
+    
+    WordVecBodyRecommender, TitleWordVecTitleyRecommender, KNNBasicRecommender, KNNWithMeansRecommender, KNNWithZScoreRecommender, KNNWithBaselineRecommender, MatrixRecommender, SVDMatrixRecommender, SVDPPMatrixRecommender, NMFMatrixRecommender, SlopeOneRecommender, CoClusteringRecommender
 ]
 
 
