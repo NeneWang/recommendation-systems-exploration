@@ -18,47 +18,60 @@ for product_data in product_datas[2:]:
     pprint.pprint(product_data)
 
     productdf =  pd.read_csv("../" + product_data["product_filepath"])
-    transactiondf = pd.read_csv("../" + product_data["transactions_filepath"])
+    transactions_df = pd.read_csv("../" + product_data["transactions_filepath"])
     
     training_df_arr = []
     
     
     # join transactions by same user_id. into a dict of user_id: [transactions]
     user_transactions = {}
-    for row in transactiondf[:5000].iterrows():
+    
+    # This solution to limit users seems to be better, as it takes advatage of the speedy sort from the dataframe.
+    count_users_to_limit = 500
+    count_users = 0
+    
+    
+    training_transactiondf = transactions_df.sort_values(by=['user_id'])
+    for row in transactions_df.iterrows():
     # for row in transactiondf.iterrows():
         training_df_arr.append(row[1])
         user_id = row[1]["user_id"]
         if user_id not in user_transactions:
             user_transactions[user_id] = []
+            count_users += 1
         user_transactions[user_id].append(row[1]['product_id'])
+        if count_users >= count_users_to_limit:
+            break
     
-    # create df from transactionsdf
-    transactiondf = pd.DataFrame(training_df_arr)
+    trainning_usertransactions, test_usertransactions = train_test_split(list(user_transactions.values()), test_size=.2, random_state=42)
+    training_transactions_users_ids, _ = train_test_split(list(user_transactions.keys()), test_size=.2, random_state=42)
+    # Create transactiondf from trainning_usertransactions by filtering transactions df where user_id is in trainning_usertransactions
+    user_ids = [transaction for transaction in training_transactions_users_ids]
     
-    past_transactions, test_transactions = train_test_split(list(user_transactions.values()), test_size=.2, random_state=42)
+    training_transactiondf = pd.DataFrame(training_df_arr)
+    training_transactiondf = training_transactiondf[training_transactiondf['user_id'].isin(user_ids)]
     
     # for each engine rec. Train, test:
     start_time = time.time()
     for rec_engine_class in engines_list:
         start_time = time.time()
         print("=========", rec_engine_class.strategy_name, start_time, "=========")
-        rec_engine: RecommendationAbstract  = rec_engine_class(products=productdf, product_data=product_data, transactions = transactiondf)
+        rec_engine: RecommendationAbstract  = rec_engine_class(products=productdf, product_data=product_data, transactions = training_transactiondf)
         rec_engine.train(auto_save=False)
         hits = []
         true_values = []  # Actual values
         predicted_values = []  # Predicted values
         failures = 0
         
-        for user_transactions in test_transactions:
+        for user_transactions in test_usertransactions:
             try:
                 if len(user_transactions) < 2:
                     failures += 1
                     # print("skipping user with less than 2 transactions")
                     continue
                 
-                past_transactions, pred_transactions = train_test_split(user_transactions, test_size=.25, random_state=42)
-                recs: List[Tuple[dict, float]] = rec_engine.recommend_from_past(past_transactions)
+                train_transactions, pred_transactions = train_test_split(user_transactions, test_size=.25, random_state=42)
+                recs: List[Tuple[dict, float]] = rec_engine.recommend_from_past(train_transactions)
                 if len(recs) == 0:
                     failures += 1
                     print("skipping user with no recommendations")
@@ -94,8 +107,8 @@ for product_data in product_datas[2:]:
             "precision": precision,
             "recall": recall,
             "failures": failures,
-            "count_unique_users_tested": len(test_transactions),
-            "count_unique_users_train": len(training_df_arr),
+            "users on test": len(test_usertransactions),
+            "users on train": len(trainning_usertransactions),
             "unique_product_count": len(productdf["product_id"].unique()),
             "duration": duration,
         }
