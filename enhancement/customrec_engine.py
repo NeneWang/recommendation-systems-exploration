@@ -843,7 +843,7 @@ class KNNBasicRecommender(RecommendationAbstract):
         recs = list(recs)
         
         recs.sort(key=lambda x: x[1], reverse=True)
-        return recs
+        return recs[:n]
     
 class KNNWithZScoreRecommender(KNNBasicRecommender):
     strategy_name: str = "KNN With ZScore"
@@ -1232,7 +1232,7 @@ class MatrixRecommender(RecommendationAbstract):
         recs = list(recs)
         
         recs.sort(key=lambda x: x[1], reverse=True)
-        return recs
+        return recs[:n]
 
 class SVDMatrixRecommender(MatrixRecommender):
     strategy_name: str = "SVD Factorization"
