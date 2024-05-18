@@ -7,6 +7,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 product_datas = PRODUCT_DATAS
+REPORT_NAME = "performance_evaluator_50_"
 
 
 results = [] 
@@ -21,7 +22,7 @@ for product_data in product_datas:
     
     # join transactions by same user_id. into a dict of user_id: [transactions]
     user_transactions = {}
-    for row in transactiondf[:1000].iterrows():
+    for row in transactiondf[:50000].iterrows():
     # for row in transactiondf.iterrows():
         training_df_arr.append(row[1])
         user_id = row[1]["user_id"]
@@ -106,7 +107,7 @@ for product_data in product_datas:
             pass
 df_results = pd.DataFrame(results)
 # store results
-df_results.to_csv("results.csv")
+df_results.to_csv( REPORT_NAME+ "results.csv")
 print("Results stored in results.csv")
 print(df_results.head(40))
 print('=========== FINISHED ===========')
