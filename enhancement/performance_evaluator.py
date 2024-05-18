@@ -21,7 +21,7 @@ for product_data in product_datas:
     
     # join transactions by same user_id. into a dict of user_id: [transactions]
     user_transactions = {}
-    for row in transactiondf.iterrows():
+    for row in transactiondf[:1000].iterrows():
     # for row in transactiondf.iterrows():
         training_df_arr.append(row[1])
         user_id = row[1]["user_id"]
