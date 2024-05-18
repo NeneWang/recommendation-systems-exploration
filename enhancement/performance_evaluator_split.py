@@ -1,49 +1,35 @@
 import pandas as pd
+import time
 from customrec_engine import engines_list, RecommendationAbstract, PRODUCT_DATAS
 import pprint
 from sklearn.model_selection import train_test_split
 from typing import List, Tuple
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-import time
-
 
 product_datas = PRODUCT_DATAS
-REPORT_NAME = "performance_evaluator_timed_prio_products_500_20"
-total_start_time = time.time()  # Start time for total computation
+REPORT_NAME = "performance_evaluator_v3"
 
 
 results = [] 
-for product_data in product_datas[2:]:
+for product_data in product_datas[:2]:
     pprint.pprint(product_data)
 
     productdf =  pd.read_csv("../" + product_data["product_filepath"])
-    transactions_df = pd.read_csv("../" + product_data["transactions_filepath"])
+    transactiondf = pd.read_csv("../" + product_data["transactions_filepath"])
     
     training_df_arr = []
     
     
     # join transactions by same user_id. into a dict of user_id: [transactions]
     user_transactions = {}
-    
-    # This solution to limit users seems to be better, as it takes advatage of the speedy sort from the dataframe.
-    count_users_to_limit = 100
-    count_valid_users = 0
-    
-    
-    training_transactiondf = transactions_df.sort_values(by=['product_id'])
-    for row in transactions_df.iterrows():
+    for row in transactiondf.iterrows():
     # for row in transactiondf.iterrows():
         training_df_arr.append(row[1])
         user_id = row[1]["user_id"]
         if user_id not in user_transactions:
             user_transactions[user_id] = []
-        else:
-            if len(user_transactions[user_id]) >= 10:
-                count_valid_users += 1
         user_transactions[user_id].append(row[1]['product_id'])
-        if count_valid_users >= count_users_to_limit:
-            break
     
     trainning_usertransactions, test_usertransactions = train_test_split(list(user_transactions.values()), test_size=.2, random_state=42)
     training_transactions_users_ids, _ = train_test_split(list(user_transactions.keys()), test_size=.2, random_state=42)
@@ -74,7 +60,6 @@ for product_data in product_datas[2:]:
                 
                 train_transactions, pred_transactions = train_test_split(user_transactions, test_size=.25, random_state=42)
                 recs: List[Tuple[dict, float]] = rec_engine.recommend_from_past(train_transactions)
-                
                 if len(recs) == 0:
                     failures += 1
                     print("skipping user with no recommendations")
@@ -133,8 +118,6 @@ for product_data in product_datas[2:]:
         except Exception as e:
             print(e)
             pass
-        
-        
         
 df_results = pd.DataFrame(results)
 # store results

@@ -9,12 +9,12 @@ import time
 
 
 product_datas = PRODUCT_DATAS
-REPORT_NAME = "performance_evaluator_timed_prio_products_500_20"
+REPORT_NAME = "performance_evaluator_timed_prio_products_500_all"
 total_start_time = time.time()  # Start time for total computation
 
 
 results = [] 
-for product_data in product_datas[2:]:
+for product_data in product_datas:
     pprint.pprint(product_data)
 
     productdf =  pd.read_csv("../" + product_data["product_filepath"])
@@ -27,7 +27,7 @@ for product_data in product_datas[2:]:
     user_transactions = {}
     
     # This solution to limit users seems to be better, as it takes advatage of the speedy sort from the dataframe.
-    count_users_to_limit = 100
+    count_users_to_limit = 500
     count_valid_users = 0
     
     
@@ -39,7 +39,7 @@ for product_data in product_datas[2:]:
         if user_id not in user_transactions:
             user_transactions[user_id] = []
         else:
-            if len(user_transactions[user_id]) >= 10:
+            if len(user_transactions[user_id]) > 10:
                 count_valid_users += 1
         user_transactions[user_id].append(row[1]['product_id'])
         if count_valid_users >= count_users_to_limit:

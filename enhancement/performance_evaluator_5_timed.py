@@ -9,7 +9,7 @@ import time
 
 
 product_datas = PRODUCT_DATAS
-REPORT_NAME = "performance_evaluator_timed_50_"
+REPORT_NAME = "performance_evaluator_timed_user_id_prio"
 total_start_time = time.time()  # Start time for total computation
 
 
