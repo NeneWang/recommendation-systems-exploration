@@ -14,7 +14,7 @@ total_start_time = time.time()  # Start time for total computation
 
 
 results = [] 
-for product_data in product_datas:
+for product_data in product_datas[2:]:
     pprint.pprint(product_data)
 
     productdf =  pd.read_csv("../" + product_data["product_filepath"])
@@ -39,6 +39,7 @@ for product_data in product_datas:
     past_transactions, test_transactions = train_test_split(list(user_transactions.values()), test_size=.2, random_state=42)
     
     # for each engine rec. Train, test:
+    start_time = time.time()
     for rec_engine_class in engines_list:
         start_time = time.time()
         print("=========", rec_engine_class.strategy_name, start_time, "=========")
@@ -95,6 +96,7 @@ for product_data in product_datas:
             "failures": failures,
             "count_unique_users_tested": len(test_transactions),
             "count_unique_users_train": len(training_df_arr),
+            "unique_product_count": len(productdf["product_id"].unique()),
             "duration": duration,
         }
         pprint.pprint(rows_data)

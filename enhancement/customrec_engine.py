@@ -46,31 +46,49 @@ PRODUCT_DATAS = [
         'user_unique_count': 14191,
         'version': '2'
     },
-   {
-       'data_context': 'games',
-    'product_count': 2274,
-    'product_features': ['product_id',
-                        'product_title',
-                        'product_price',
-                        'product_soup',
-                        'product_tags',
-                        'count',
-                        'id'],
-    'product_filepath': 'data/products_games_v2_t6_p12.csv',
-    'product_unique_count': 2274,
-    'transaction_count': 1698830,
-    'transaction_features': ['id', 'user_id', 'product_id', 'rate'],
-    'transactions_filepath': 'data/transactions_games_v2_t6_p12.csv',
-    'unique_name': '_games_v2_t6_p12',
-    'user_count': 149434,
-    'user_features': ['id', 'details_soup'],
-    'user_filepath': 'data/users_games_v2_t6_p12.csv',
-    'user_unique_count': 149434,
-    'version': '2'
-}
-
-
-                 ]
+    {
+        'data_context': 'games',
+        'product_count': 2274,
+        'product_features': ['product_id',
+                            'product_title',
+                            'product_price',
+                            'product_soup',
+                            'product_tags',
+                            'count',
+                            'id'],
+        'product_filepath': 'data/products_games_v2_t6_p12.csv',
+        'product_unique_count': 2274,
+        'transaction_count': 1698830,
+        'transaction_features': ['id', 'user_id', 'product_id', 'rate'],
+        'transactions_filepath': 'data/transactions_games_v2_t6_p12.csv',
+        'unique_name': '_games_v2_t6_p12',
+        'user_count': 149434,
+        'user_features': ['id', 'details_soup'],
+        'user_filepath': 'data/users_games_v2_t6_p12.csv',
+        'user_unique_count': 149434,
+        'version': '2'
+    },
+    {
+        'data_context': 'movies',
+        'product_count': 0,
+        'product_features': ['product_id',
+                            'product_title',
+                            'product_image',
+                            'product_price',
+                            'product_soup',
+                            'product_tags',
+                            'product_rate',
+                            'count',
+                            'id'],
+        'product_filepath': 'data/products_movies_v2_t6_p12.csv',
+        'product_unique_count': 0,
+        'transaction_count': 25827368,
+        'transaction_features': ['id', 'user_id', 'product_id', 'rate'],
+        'transactions_filepath': 'data/transactions_movies_v2_t6_p12.csv',
+        'unique_name': '_movies_v2_t6_p12',
+        'version': '2'
+    }
+]
 
 product_data = PRODUCT_DATAS[0]
 
