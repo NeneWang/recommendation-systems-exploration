@@ -1,21 +1,21 @@
 import pandas as pd
 import time
-from customrec_engine import engines_list, RecommendationAbstract, PRODUCT_DATAS
+from customrec_engine import engines_list, RecommendationAbstract, PRODUCT_DATAS_V2, PRODUCT_DATAS, PRODUCT_DATAS_V3
 import pprint
 from sklearn.model_selection import train_test_split
 from typing import List, Tuple
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import random
 
-product_datas = PRODUCT_DATAS
 CUSTOM_SEED = 42
 REPORT_NAME = "performance_evaluator_v3"
 
-def custom_filename(report_name, customseed):
-    filename = f"{report_name}_{customseed}"
+def custom_filename(report_name, customseed, recommended_products=10):
+    filename = f"../reports/{report_name}_SEED{customseed}_REC{recommended_products}.csv"
     return filename
 
-def create_recommender_report(product_datas, filename=REPORT_NAME, seed=CUSTOM_SEED):
+def create_recommender_report(product_datas=PRODUCT_DATAS, filename=REPORT_NAME, seed=CUSTOM_SEED, recommended_products=10, HARD_ROW_LIMIT=None):
     results = [] 
     for product_data in product_datas:
         pprint.pprint(product_data)
@@ -25,11 +25,11 @@ def create_recommender_report(product_datas, filename=REPORT_NAME, seed=CUSTOM_S
     
         training_df_arr = []
     
-    
-    # join transactions by same user_id. into a dict of user_id: [transactions]
         user_transactions = {}
+        if HARD_ROW_LIMIT is not None:
+            transactiondf = transactiondf[:HARD_ROW_LIMIT]
+        
         for row in transactiondf.iterrows():
-    # for row in transactiondf.iterrows():
             training_df_arr.append(row[1])
             user_id = row[1]["user_id"]
             if user_id not in user_transactions:
@@ -37,24 +37,20 @@ def create_recommender_report(product_datas, filename=REPORT_NAME, seed=CUSTOM_S
             user_transactions[user_id].append(row[1]['product_id'])
     
         training_transactions_users_ids, test_user_ids = train_test_split(list(user_transactions.keys()), test_size=.2, random_state=seed)
-    # trainning_usertransactions, test_usertransactions = train_test_split(list(user_transactions.values()), test_size=.2, random_state=42)
         trainning_usertransactions = [user_transactions[user_id] for user_id in training_transactions_users_ids]
         test_usertransactions = [user_transactions[user_id] for user_id in test_user_ids] 
     
-    # Create transactiondf from trainning_usertransactions by filtering transactions df where user_id is in trainning_usertransactions
         user_ids = [transaction for transaction in training_transactions_users_ids]
     
         training_transactiondf = pd.DataFrame(training_df_arr)
         training_transactiondf = training_transactiondf[training_transactiondf['user_id'].isin(user_ids)]
     
-    # for each engine rec. Train, test:
         start_time = time.time()
         for rec_engine_class in engines_list:
             start_time = time.time()
             print("=========", rec_engine_class.strategy_name, start_time, "=========")
             rec_engine: RecommendationAbstract  = rec_engine_class(products=productdf, product_data=product_data, transactions = training_transactiondf)
             rec_engine.train(auto_save=False)
-            hits = []
             true_values = []  # Actual values
             predicted_values = []  # Predicted values
             failures = 0
@@ -76,7 +72,7 @@ def create_recommender_report(product_datas, filename=REPORT_NAME, seed=CUSTOM_S
                     recommendation_ids = [rec[0]['product_id'] for rec in recs]
                     true_values.append(1)  # Assuming 1 represents a hit
                     hit = 0
-                # print('eval', len(recommendation_ids), len(pred_transactions), len(past_transactions))
+                     # print('eval', len(recommendation_ids), len(pred_transactions), len(past_transactions))
                     for rec in recommendation_ids:
                         if rec in pred_transactions:
                             hit = 1
@@ -89,7 +85,6 @@ def create_recommender_report(product_datas, filename=REPORT_NAME, seed=CUSTOM_S
             accuracy = accuracy_score(true_values, predicted_values)
             precision = precision_score(true_values, predicted_values)
             recall = recall_score(true_values, predicted_values)
-        # assert(len(true_values) == len(predicted_values))
         
             end_time = time.time()  # End time for this recommender model
             duration = end_time - start_time  # Duration for this recommender model
@@ -127,12 +122,22 @@ def create_recommender_report(product_datas, filename=REPORT_NAME, seed=CUSTOM_S
     
     df_results = pd.DataFrame(results)
     # store results
-    df_results.to_csv( filename + "results.csv")
-    print("Results stored in results.csv")
+    df_results.to_csv(filename)
     print(df_results.head(40))
     print('=========== FINISHED ===========')
 
 
-for seed in [42, 43, 44, 45, 46]:
-    create_recommender_report(product_datas, custom_filename(REPORT_NAME, seed), seed)
+report_to_gen_settings: List[dict] = []
+for seed in [random.randint(0, 1000) for _ in range(5)]:
+    for product_datas in [PRODUCT_DATAS_V3]:
+        report_to_gen_settings.append({
+            "product_datas":product_datas,
+            "seed": seed,
+            "HARD_ROW_LIMIT": 1000,
+            "filename": custom_filename(REPORT_NAME, seed),
+            }
+        )
+    
 
+for report_setting in report_to_gen_settings:
+    create_recommender_report(**report_setting)

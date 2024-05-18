@@ -17,7 +17,7 @@ from surprise.prediction_algorithms.co_clustering import CoClustering
 from surprise import Dataset, Reader
 from surprise.model_selection import train_test_split
 
-PRODUCT_DATAS = [
+PRODUCT_DATAS_V2 = [
     {
         "data_context": "books",
         "product_filepath": "data/products_books_v1_10_10.csv",
@@ -91,7 +91,7 @@ PRODUCT_DATAS = [
     
 ]
 
-PRODUCT_DATAS = [
+PRODUCT_DATAS_V3 = [
     {
         'data_context': 'games',
         'product_count': 1574,
@@ -152,6 +152,8 @@ PRODUCT_DATAS = [
  'unique_users': 1391,
  'version': '3'}
 ]
+
+PRODUCT_DATAS = PRODUCT_DATAS_V3    
 
 product_data = PRODUCT_DATAS[0]
 
