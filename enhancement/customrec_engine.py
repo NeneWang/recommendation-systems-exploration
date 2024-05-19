@@ -358,12 +358,15 @@ class WordVecBodyRecommender(RecommendationAbstract):
         # Compute cosine similarity between the input vector and all product vectors
         similarities = cosine_similarity([vector], self.model.wv.vectors)
         # Get indices of top similar products
-        top_indices = similarities.argsort()[0][-top_n:]
         recommended_products = []
-        for index in reversed(top_indices):  # Reversed to get top similarities first
-            product_title = self.products_df.iloc[index]['product_title']
-            confidence = similarities[0][index]
-            recommended_products.append((self.id_to_productDetail(self.products_df.iloc[index]['id']), confidence))
+        try:
+            top_indices = similarities.argsort()[0][-top_n:]
+            for index in reversed(top_indices):  # Reversed to get top similarities first
+                product_title = self.products_df.iloc[index]['product_title']
+                confidence = similarities[0][index]
+                recommended_products.append((self.id_to_productDetail(self.products_df.iloc[index]['id']), confidence))
+        except Exception as e:
+            print('Error', e)
         return recommended_products
 
         
@@ -651,8 +654,11 @@ class GridSearchableAbstract(RecommendationAbstract):
 class KNNBasicRecommender(RecommendationAbstract):
     strategy_name: str = "KNN Basic"
     slug_name: str = "knn_basic"
-    version: str = "v1"
-    details: str = "REQUIRES IMPLEMENTATION"
+    version: str = "v2"
+    details: str = """
+    2024-05-19 13:03:120202
+    Resilient against unregistered products on trainning.
+    """
     link: str = "https://hackmd.io/EXkbc8gFQoCg-lsT7_U6EQ?both#KNNBasic"
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
@@ -724,21 +730,24 @@ class KNNBasicRecommender(RecommendationAbstract):
         
         # for each neighbor, try to predict and prioritize given a user in all_transactions_that shared that book as well.
         for neighbor_book_inner_id in neighbors:
-            product_serie = self.products.iloc[neighbor_book_inner_id]
-            neighbor_book_id = product_serie['id']
-            if neighbor_book_id == product_id:
-                continue
-            relevant_transactions = self.all_transactions_df[self.all_transactions_df['product_id'] == neighbor_book_id]
-            # get user_id that top rated the product sort the relevant_transactions
-            relevant_transactions = relevant_transactions.sort_values(by='rate', ascending=False)
-            
-            if len(relevant_transactions) <= 0:
-                continue
-            user_id = relevant_transactions.iloc[0]['user_id']
-            
-            pred = self.model.predict(user_id, neighbor_book_id)
-            recommendation_list.append((self.id_to_products[neighbor_book_id], pred.est))
-        
+            try:
+                product_serie = self.products.iloc[neighbor_book_inner_id]
+                neighbor_book_id = product_serie['id']
+                if neighbor_book_id == product_id:
+                    continue
+                relevant_transactions = self.all_transactions_df[self.all_transactions_df['product_id'] == neighbor_book_id]
+                # get user_id that top rated the product sort the relevant_transactions
+                relevant_transactions = relevant_transactions.sort_values(by='rate', ascending=False)
+                
+                if len(relevant_transactions) <= 0:
+                    continue
+                user_id = relevant_transactions.iloc[0]['user_id']
+                
+                pred = self.model.predict(user_id, neighbor_book_id)
+                recommendation_list.append((self.id_to_products[neighbor_book_id], pred.est))
+            except Exception as e:
+                print('Error at recommend_from_single', e)
+                continue        
         # sort recommendations
         recommendation_list.sort(key=lambda x: x[1], reverse=True)
         return recommendation_list[:n]
@@ -793,15 +802,18 @@ class KNNBasicRecommender(RecommendationAbstract):
         products_dictionary = {}
         
         for transaction in transactions:
-            recs = self.recommend_from_single(transaction)
-            for rec_id, confidence in recs:
-                
-                if rec_id in recs:
-                    recs_seen_times[rec_id['id']] += 1
-                else:
-                    products_dictionary[rec_id['id']] = rec_id
-                    recs_seen_times[rec_id['id']] = 1
-        
+            try:
+                recs = self.recommend_from_single(transaction)
+                for rec_id, confidence in recs:
+                    
+                    if rec_id in recs:
+                        recs_seen_times[rec_id['id']] += 1
+                    else:
+                        products_dictionary[rec_id['id']] = rec_id
+                        recs_seen_times[rec_id['id']] = 1
+            except Exception as e:
+                print('Error at recommend_from_past', self.strategy_name, e)
+                continue    
         for rec_id in recs_seen_times:
             recs.append((products_dictionary[rec_id], recs_seen_times[rec_id]))
             
@@ -1109,24 +1121,27 @@ class MatrixRecommender(RecommendationAbstract):
         
         # for each neighbor, try to predict and prioritize given a user in all_transactions_that shared that book as well.
         for neighbor_book_inner_id in neighbors:
-            
-            product_serie = self.products.iloc[neighbor_book_inner_id]
-            neighbor_book_id = product_serie['id']
-            
-            if (neighbor_book_id == product_id):
+            try:
+                product_serie = self.products.iloc[neighbor_book_inner_id]
+                neighbor_book_id = product_serie['id']
+                
+                if (neighbor_book_id == product_id):
+                    continue
+                
+                relevant_transactions = self.all_transactions_df[self.all_transactions_df['product_id'] == neighbor_book_id]
+                relevant_transactions = relevant_transactions.sort_values(by='rate', ascending=False)
+                # remove where  product_id product_id
+                if len(relevant_transactions) == 0:
+                    continue
+                
+                
+                user_id = relevant_transactions.iloc[0]['user_id']
+                
+                pred = self.model.predict(user_id, neighbor_book_id)
+                recommendation_list.append((self.id_to_products[neighbor_book_id], pred.est))
+            except Exception as e:
+                print('Error at recommend_from_single', self.strategy_name, e)
                 continue
-            
-            relevant_transactions = self.all_transactions_df[self.all_transactions_df['product_id'] == neighbor_book_id]
-            relevant_transactions = relevant_transactions.sort_values(by='rate', ascending=False)
-            # remove where  product_id product_id
-            if len(relevant_transactions) == 0:
-                continue
-            
-            
-            user_id = relevant_transactions.iloc[0]['user_id']
-            
-            pred = self.model.predict(user_id, neighbor_book_id)
-            recommendation_list.append((self.id_to_products[neighbor_book_id], pred.est))
         
         # sort recommendations
         recommendation_list.sort(key=lambda x: x[1], reverse=True)
@@ -1182,15 +1197,18 @@ class MatrixRecommender(RecommendationAbstract):
         products_dictionary = {}
         
         for transaction in transactions:
-            recs = self.recommend_from_single(transaction)
-            for rec_id, confidence in recs:
+            try:
+                recs = self.recommend_from_single(transaction)
+                for rec_id, confidence in recs:
                 
-                if rec_id in recs:
-                    recs_seen_times[rec_id['id']] += confidence
-                else:
-                    products_dictionary[rec_id['id']] = rec_id
-                    recs_seen_times[rec_id['id']] = confidence
-        
+                    if rec_id in recs:
+                        recs_seen_times[rec_id['id']] += confidence
+                    else:
+                        products_dictionary[rec_id['id']] = rec_id
+                        recs_seen_times[rec_id['id']] = confidence
+            except Exception as e:
+                print('Error at recommend_from_past', self.strategy_name, e)
+                continue
         for rec_id in recs_seen_times:
             recs.append((products_dictionary[rec_id], recs_seen_times[rec_id]))
             
