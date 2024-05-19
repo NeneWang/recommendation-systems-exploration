@@ -125,6 +125,7 @@ def create_recommender_report(product_datas=PRODUCT_DATAS, filename=REPORT_NAME,
     df_results.to_csv(filename)
     print(df_results.head(40))
     print('=========== FINISHED ===========')
+    print('Results saved to', filename)
 
 
 report_to_gen_settings: List[dict] = []
