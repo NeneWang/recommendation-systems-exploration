@@ -245,7 +245,7 @@ class CosineSimilarityRecommender(RecommendationAbstract):
     slug_name: str = "cosine_similarity"
     version: str = "v1"
     details: str = "REQUIRES IMPLEMENTATION"
-    link: str = "REQUIRES IMPLEMENTATION"
+    link: str = "https://hackmd.io/EXkbc8gFQoCg-lsT7_U6EQ?view#Cosine-Similarity"
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
@@ -323,7 +323,7 @@ class WordVecBodyRecommender(RecommendationAbstract):
     slug_name: str = "wordvec"
     version: str = "v1"
     details: str = "REQUIRES IMPLEMENTATION"
-    link: str = "REQUIRES IMPLEMENTATION"
+    link: str = "https://hackmd.io/EXkbc8gFQoCg-lsT7_U6EQ?view#Word-Vec"
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
@@ -410,24 +410,15 @@ class WordVecBodyRecommender(RecommendationAbstract):
         filemodel.close()
 
 
-class TitleWordVecTitleyRecommender(RecommendationAbstract):
+class TitleWordVecTitleyRecommender(WordVecBodyRecommender):
     
     strategy_name: str = "TitleWordVec"
     slug_name: str = "title_word_vec"
     version: str = "v1"
     details: str = "REQUIRES IMPLEMENTATION"
-    link: str = "REQUIRES IMPLEMENTATION"
+    link: str = "https://hackmd.io/EXkbc8gFQoCg-lsT7_U6EQ?view#Wordvec-Title"
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
-    
-    def __init__(self, products, product_data, transactions=None):
-        """
-        Initialize the recommender with a pre-trained Word2Vec model and a dataframe of books.
-        """
-        super().__init__(products, product_data)
-        self.products_df = products
-        self.model = None
-        self.train()
     
     
     def train(self, auto_save=False):
@@ -477,40 +468,18 @@ class TitleWordVecTitleyRecommender(RecommendationAbstract):
             confidence = similarities[0][index]
             recommended_products.append((self.id_to_productDetail(self.products_df.iloc[index]['id']), confidence))
         return recommended_products
-
-    def save(self):
-        """
-        Save the computed book vectors to a file.
-        """
-        filename = self.get_filename()
-        with open(filename, 'wb') as filemodel:
-            pickle.dump(self.model, filemodel)
-
-    def load(self):
-        """
-        Load the book vectors from a file.
-        """
-        filename = self.get_filename()
-        with open(filename, 'rb') as filemodel:
-            self.model = pickle.load(filemodel)
-
-    def get_filename(self):
-        """
-        Get the filename for saving/loading the model.
-        """
-        return "models/" + self.slug_name + self.product_data["unique_name"] + ".model"    
-    
-class TitleWordVecTitleyRecommenderV2(RecommendationAbstract):
+ 
+class TitleWordVecTitleyRecommenderV2(WordVecBodyRecommender):
     """
     Key Changes:
     - Using nlp to search first nouns>verbs>adjectives
     - Past Transactions search instead of the aggregated titles, makes individual search with prioritization with eah title
     """
-    strategy_name: str = "TitleWordVec"
-    slug_name: str = "title_word_vec"
+    strategy_name: str = "TitleWordVecV2"
+    slug_name: str = "title_word_vec_v2"
     version: str = "v2"
     details: str = "REQUIRES IMPLEMENTATION"
-    link: str = "REQUIRES IMPLEMENTATION"
+    link: str = "https://hackmd.io/EXkbc8gFQoCg-lsT7_U6EQ?view#Wordvec-Title-V2"
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
@@ -647,45 +616,6 @@ class TitleWordVecTitleyRecommenderV2(RecommendationAbstract):
         unique_rec.sort(key=lambda x: x[1])
         return unique_rec[:n]
         
-
-    def recommend_books_updated(self, input_text, top_n=5):
-        """
-        Return recommendations based on input text.
-        """
-        input_text = input_text.lower().translate(str.maketrans('', '', string.punctuation)).split()
-        vector = self.model.wv[input_text].mean(axis=0)
-        similar_vectors = self.model.wv.similar_by_vector(vector, topn=top_n + 10)  # Retrieve more results to filter unique titles
-        recommended_titles = []
-        for book_vector in similar_vectors:
-            similar_title = self.products_df.loc[self.products_df['processed_soup'].apply(lambda x: any(word in x for word in input_text)), 'processed_soup'].unique()
-            for title in similar_title:
-                if title not in recommended_titles and len(recommended_titles) < top_n:
-                    product = self.products_df.loc[self.products_df['processed_soup'] == title].iloc[0].to_dict()
-                    recommended_titles.append((product, book_vector[1]))
-        return recommended_titles
-
-    def save(self):
-        """
-        Save the computed book vectors to a file.
-        """
-        filename = self.get_filename()
-        with open(filename, 'wb') as filemodel:
-            pickle.dump(self.model, filemodel)
-
-    def load(self):
-        """
-        Load the book vectors from a file.
-        """
-        filename = self.get_filename()
-        with open(filename, 'rb') as filemodel:
-            self.model = pickle.load(filemodel)
-
-    def get_filename(self):
-        """
-        Get the filename for saving/loading the model.
-        """
-        return "models/" + self.slug_name + self.product_data["unique_name"] + ".model"
-    
 
 class KNNBasicRecommender(RecommendationAbstract):
     strategy_name: str = "KNN Basic"
@@ -1290,7 +1220,10 @@ class CoClusteringRecommender(MatrixRecommender):
 
 engines_list = [
     
-    WordVecBodyRecommender, TitleWordVecTitleyRecommender, KNNBasicRecommender, KNNWithMeansRecommender, KNNWithZScoreRecommender, KNNWithBaselineRecommender, MatrixRecommender, SVDMatrixRecommender, SVDPPMatrixRecommender, NMFMatrixRecommender, SlopeOneRecommender, CoClusteringRecommender
+    WordVecBodyRecommender, TitleWordVecTitleyRecommender,TitleWordVecTitleyRecommenderV2, KNNBasicRecommender,
+    KNNWithMeansRecommender, KNNWithZScoreRecommender, KNNWithBaselineRecommender, 
+    MatrixRecommender, SVDMatrixRecommender, SVDPPMatrixRecommender,
+    NMFMatrixRecommender, SlopeOneRecommender, CoClusteringRecommender
 ]
 
 
@@ -1298,6 +1231,24 @@ engines = {}
 
 for engine in engines_list:
     engines[engine.slug_name] = {
+        "title": engine.strategy_name,
+        "engine": engine
+    }
+
+
+engines_list_streamlit = [
+    
+    WordVecBodyRecommender, TitleWordVecTitleyRecommender, KNNBasicRecommender,
+    KNNWithMeansRecommender, KNNWithZScoreRecommender, KNNWithBaselineRecommender, 
+    MatrixRecommender, SVDMatrixRecommender, SVDPPMatrixRecommender,
+    NMFMatrixRecommender, SlopeOneRecommender, CoClusteringRecommender
+]
+
+
+engines_streamlit = {}
+
+for engine in engines_list_streamlit:
+    engines_streamlit[engine.slug_name] = {
         "title": engine.strategy_name,
         "engine": engine
     }

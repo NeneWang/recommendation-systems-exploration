@@ -138,7 +138,7 @@ for seed in [random.randint(0, 1000) for _ in range(5)]:
         )
 
 
-create_recommender_report(product_datas=PRODUCT_DATAS_V3[2:], filename=custom_filename(REPORT_NAME, CUSTOM_SEED))
+create_recommender_report(product_datas=PRODUCT_DATAS_V3, filename=custom_filename(REPORT_NAME, CUSTOM_SEED))
 
 # for report_setting in report_to_gen_settings:
 #     create_recommender_report(**report_setting)

@@ -14,7 +14,15 @@ Download also the proper spacy movdel:
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt --upgrade
-python -m spacy download en
+
+python -m spacy download en_core_web_sm
+```
+
+If deploying on streamlit, I using instead:
+
+```
+engines_list_streamlit
+engines_streamlit
 ```
 
 Please download the books and datasets from the following links:
