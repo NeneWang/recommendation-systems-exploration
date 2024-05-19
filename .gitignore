@@ -1,4 +1,9 @@
-!/reports/*
+# Ignore all CSV files
+*.csv
+
+# Except those in the 'reports' subfolder
+!*/reports/*.csv
+
 *.pik
 *.model
 
@@ -6,7 +11,6 @@
 *.model
 */data
 /guides
-*.csv
 
 *.pdf
 # Byte-compiled / optimized / DLL files
