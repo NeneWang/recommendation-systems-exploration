@@ -240,6 +240,7 @@ class RecommendationAbstract():
 
     # Implementation of the class using cosine Similarity.
 
+
 class CosineSimilarityRecommender(RecommendationAbstract):
     strategy_name: str = "Cosine Similarity"
     slug_name: str = "cosine_similarity"
@@ -617,12 +618,42 @@ class TitleWordVecTitleyRecommenderV2(WordVecBodyRecommender):
         return unique_rec[:n]
         
 
+
+from surprise.model_selection import GridSearchCV
+
+class GridSearchableAbstract(RecommendationAbstract):
+    
+    # These parameters are  to be defined specifically by the parameters allowed by the algorithms.
+    # Check: 
+    param_grid = {"n_epochs": [5, 10], "lr_all": [0.002, 0.005], "reg_all": [0.4, 0.6]}
+    measures = ["rmse"]
+    cv = 3
+    
+    def train(self, auto_optimize=True, auto_save=False, dont_save_self_state=False):
+        transactions = self.all_transactions_df
+        trainset = transactions.build_full_trainset()
+        gs = GridSearchCV(self.algorithm, self.param_grid, measures=self.measures, cv=self.cv)
+        gs.fit(trainset)
+        
+        model = gs.best_estimator['rmse']
+        self.model = model
+        
+        if dont_save_self_state:
+            return model
+        
+        self.model = model
+        self.all_transactions_df = transactions
+        if auto_save:
+            self.save()
+            
+        return model
+
 class KNNBasicRecommender(RecommendationAbstract):
     strategy_name: str = "KNN Basic"
     slug_name: str = "knn_basic"
     version: str = "v1"
     details: str = "REQUIRES IMPLEMENTATION"
-    link: str = "REQUIRES IMPLEMENTATION"
+    link: str = "https://hackmd.io/EXkbc8gFQoCg-lsT7_U6EQ?both#KNNBasic"
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     sim_options = {"name": "pearson_baseline", "user_based": False}
@@ -784,7 +815,7 @@ class KNNWithZScoreRecommender(KNNBasicRecommender):
     slug_name: str = "knn_with_zscore"
     version: str = "v1"
     details: str = "REQUIRES IMPLEMENTATION"
-    link: str = "REQUIRES IMPLEMENTATION"
+    link: str = "https://hackmd.io/EXkbc8gFQoCg-lsT7_U6EQ?both#KNN-with-ZScore"
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     sim_options = {"name": "pearson_baseline", "user_based": False}
