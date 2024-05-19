@@ -12,7 +12,7 @@ CUSTOM_SEED = 42
 REPORT_NAME = "performance_evaluator_v3"
 
 def custom_filename(report_name, customseed, recommended_products=10):
-    filename = f"../reports/{report_name}_SEED{customseed}_REC{recommended_products}.csv"
+    filename = f"./reports/{report_name}_SEED{customseed}_REC{recommended_products}.csv"
     return filename
 
 def create_recommender_report(product_datas=PRODUCT_DATAS, filename=REPORT_NAME, seed=CUSTOM_SEED, recommended_products=10, HARD_ROW_LIMIT=None):
