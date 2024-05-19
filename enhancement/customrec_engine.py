@@ -134,23 +134,25 @@ PRODUCT_DATAS_V3 = [
         'user_filepath': 'data/users_books_v3_t45_p90.csv',
         'version': '3'
     },
-    {'data_context': 'movies',
- 'product_features': ['product_id',
-                      'product_title',
-                      'product_soup',
-                      'product_tags',
-                      'product_rate',
-                      'count',
-                      'id'],
- 'product_filepath': 'data/products_movies_v3_t100_p200.csv',
- 'product_unique_count': 753,
- 'transaction_count': 218527,
- 'transaction_features': ['id', 'user_id', 'product_id', 'rate'],
- 'transactions_filepath': 'data/transactions_movies_v3_t100_p200.csv',
- 'unique_name': '_movies_v3_t100_p200',
- 'unique_product_count': 753,
- 'unique_users': 1391,
- 'version': '3'}
+    {
+        'data_context': 'movies',
+        'product_features': ['product_id',
+                            'product_title',
+                            'product_soup',
+                            'product_tags',
+                            'product_rate',
+                            'count',
+                            'id'],
+        'product_filepath': 'data/products_movies_v3_t25_p50.csv',
+        'product_unique_count': 2563,
+        'transaction_count': 92774,
+        'transaction_features': ['id', 'user_id', 'product_id', 'rate'],
+        'transactions_filepath': 'data/transactions_movies_v3_t25_p50.csv',
+        'unique_name': '_movies_v3_t25_p50',
+        'unique_product_count': 2564,
+        'unique_users': 598,
+        'version': '3'
+    }
 ]
 
 PRODUCT_DATAS = PRODUCT_DATAS_V3    

@@ -133,11 +133,12 @@ for seed in [random.randint(0, 1000) for _ in range(5)]:
         report_to_gen_settings.append({
             "product_datas":product_datas,
             "seed": seed,
-            "HARD_ROW_LIMIT": 1000,
             "filename": custom_filename(REPORT_NAME, seed),
             }
         )
-    
 
-for report_setting in report_to_gen_settings:
-    create_recommender_report(**report_setting)
+
+create_recommender_report(product_datas=PRODUCT_DATAS_V3[2:], filename=custom_filename(REPORT_NAME, CUSTOM_SEED))
+
+# for report_setting in report_to_gen_settings:
+#     create_recommender_report(**report_setting)
