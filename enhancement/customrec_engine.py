@@ -168,16 +168,28 @@ class RecommendationAbstract():
     supports_single_recommendation: bool = "REQUIRES IMPLEMENTATION"
     supports_past_recommendation: bool = "REQUIRES IMPLEMENTATION"
 
-    def __init__(self, products, product_data, transactions=None):
+    def __init__(self, products, product_data, transactions=None, log_errors=False):
         self.products = products
         self.product_data = product_data
         self.model = None
+        self.log_errors = log_errors
+        self.internal_errors_count = 0
+        self.error_message_count = {}
         # populate id_to_products
         self.id_to_products = {}
         for product in self.products.to_dict(orient='records'):
             self.id_to_products[product['id']] = product
     
-
+    def log_error(self, message):
+        self.internal_errors_count += 1
+        if message in self.error_message_count:
+            self.error_message_count[message] += 1
+        else:
+            self.error_message_count[message] = 1
+        
+        if self.log_errors:
+            print(self.strategy_name, self.version, message)
+    
     def loadModel(self, model_code):
         """
         Load the model
@@ -250,8 +262,8 @@ class CosineSimilarityRecommender(RecommendationAbstract):
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
-    def __init__(self, products, product_data, transactions=None):
-        super().__init__(products, product_data)
+    def __init__(self, products, product_data, transactions=None, log_errors=False):
+        super().__init__(products, product_data, log_errors=log_errors)
         self.products = products
         self.all_transactions_df = transactions
         self.pt = []
@@ -293,9 +305,11 @@ class CosineSimilarityRecommender(RecommendationAbstract):
         try:
             similar_products = sorted(enumerate(self.sim_score[index]), key=lambda x: x[1], reverse=True)[1:n+1]
         except Exception as e:
-            print('checl - self sim score', self.sim_score)
-            print('checl - index', index)
-            print('Error', e)
+            if self.log_errors:
+                self.log_error(f"Error at recommend_from_single: {e}")
+                print('checl - self sim score', self.sim_score)
+                print('checl - index', index)
+                print('Error', e)
         
         # Retrieve the similar products using their indices and return them
         recommendations_list = []
@@ -308,7 +322,6 @@ class CosineSimilarityRecommender(RecommendationAbstract):
 
 
     def recommend_from_past(self, transactions, n=10):
-        print('transactions received', transactions)
         rec: List[tuple[dict, float]] = []
         for transaction in transactions:
             rec.extend(self.recommend_from_single(transaction))
@@ -328,11 +341,11 @@ class WordVecBodyRecommender(RecommendationAbstract):
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
-    def __init__(self, products, product_data, transactions=None):
+    def __init__(self, products, product_data, transactions=None, log_errors=False):
         """
         Initialize the recommender with a pre-trained Word2Vec model and a dataframe of books.
         """
-        super().__init__(products, product_data)
+        super().__init__(products, product_data, log_errors=log_errors)
         self.products_df = products
         self.model = None
         # print('id_to_products length', len(self.id_to_products))
@@ -349,7 +362,7 @@ class WordVecBodyRecommender(RecommendationAbstract):
             self.save()
             
 
-    def recommend_books_updated(self, input_text, top_n=5):
+    def recommend_wordvec_strategy(self, input_text, top_n=5):
         """
         Return recommendations based on input text.
         """
@@ -361,12 +374,11 @@ class WordVecBodyRecommender(RecommendationAbstract):
         recommended_products = []
         try:
             top_indices = similarities.argsort()[0][-top_n:]
-            for index in reversed(top_indices):  # Reversed to get top similarities first
-                product_title = self.products_df.iloc[index]['product_title']
+            for index in reversed(top_indices):
                 confidence = similarities[0][index]
                 recommended_products.append((self.id_to_productDetail(self.products_df.iloc[index]['id']), confidence))
         except Exception as e:
-            print('Error', e)
+            self.log_error(f"Error at recommend_books_updated: {e}")
         return recommended_products
 
         
@@ -377,7 +389,7 @@ class WordVecBodyRecommender(RecommendationAbstract):
         # Get the product_soup for the given product_id
         product_soup = self.products.loc[self.products['id'] == product_id, 'product_soup'].values[0]
         # Use the recommend_books_updated function to recommend books based on the product_soup
-        recommendations = self.recommend_books_updated(product_soup, top_n=n)
+        recommendations = self.recommend_wordvec_strategy(product_soup, top_n=n)
         return recommendations
 
     def recommend_from_past(self, transactions, n=10):
@@ -387,7 +399,7 @@ class WordVecBodyRecommender(RecommendationAbstract):
         # Concatenate product_soup from past transactions
         past_text = ' '.join(self.products.loc[self.products['id'].isin(transactions), 'product_soup'])
         # Use the self.recommend_books_updated function to recommend books based on past transactions
-        recommendations = self.recommend_books_updated(past_text, top_n=n)
+        recommendations = self.recommend_wordvec_strategy(past_text, top_n=n)
         return recommendations
         
             
@@ -414,7 +426,7 @@ class WordVecBodyRecommender(RecommendationAbstract):
         filemodel.close()
 
 
-class TitleWordVecTitleyRecommender(WordVecBodyRecommender):
+class TitleWordVecTitleRecommender(WordVecBodyRecommender):
     
     strategy_name: str = "TitleWordVec"
     slug_name: str = "title_word_vec"
@@ -430,7 +442,7 @@ class TitleWordVecTitleyRecommender(WordVecBodyRecommender):
         Train the Word2Vec model on the book titles.
         """
         sentences = [title.lower().split() for title in self.products_df['product_title']]
-        self.model = Word2Vec(sentences=sentences, vector_size=100, window=5, min_count=1, workers=4)
+        self.model = Word2Vec(sentences=sentences, vector_size=200, window=5, min_count=1, workers=4)
         if auto_save:
             self.save()
 
@@ -441,7 +453,10 @@ class TitleWordVecTitleyRecommender(WordVecBodyRecommender):
         # Get the product_title for the given product_id
         product_title = self.products_df.loc[self.products_df['id'] == product_id, 'product_title'].values[0]
         # Use the recommend_books_updated function to recommend books based on the product_title
-        recommendations = self.recommend_books_updated(product_title, top_n=n)
+        try:
+            recommendations = self.recommend_wordvec_strategy(product_title, top_n=n)
+        except Exception as e:
+            self.log_error(f"Error at recommend_from_single: {e}")
         return recommendations
     
     def recommend_from_past(self, transactions, n=10):
@@ -451,12 +466,13 @@ class TitleWordVecTitleyRecommender(WordVecBodyRecommender):
         # Concatenate product_titles from past transactions
         past_titles = self.products_df.loc[self.products_df['id'].isin(transactions), 'product_title']
         # Use the self.recommend_books_updated function to recommend books based on past transactions
-        recommendations = self.recommend_books_updated(' '.join(past_titles), top_n=n)
+        
+        recommendations = self.recommend_wordvec_strategy(' '.join(past_titles), top_n=n)
         return recommendations
 
         
 
-    def recommend_books_updated(self, input_text, top_n=5):
+    def recommend_wordvec_strategy(self, input_text, top_n=5):
         """
         Return recommendations based on input text.
         """
@@ -468,12 +484,14 @@ class TitleWordVecTitleyRecommender(WordVecBodyRecommender):
         top_indices = similarities.argsort()[0][-top_n:]
         recommended_products = []
         for index in reversed(top_indices):  # Reversed to get top similarities first
-            product_title = self.products_df.iloc[index]['product_title']
-            confidence = similarities[0][index]
-            recommended_products.append((self.id_to_productDetail(self.products_df.iloc[index]['id']), confidence))
+            try:
+                confidence = similarities[0][index]
+                recommended_products.append((self.id_to_productDetail(self.products_df.iloc[index]['id']), confidence))
+            except Exception as e:
+                self.log_error(f"Error at recommend_books_updated: {e}")
         return recommended_products
  
-class TitleWordVecTitleyRecommenderV2(WordVecBodyRecommender):
+class TitleWordVecTitleRecommenderV2(WordVecBodyRecommender):
     """
     Key Changes:
     - Using nlp to search first nouns>verbs>adjectives
@@ -487,11 +505,11 @@ class TitleWordVecTitleyRecommenderV2(WordVecBodyRecommender):
     supports_single_recommendation: bool = True
     supports_past_recommendation: bool = True
     
-    def __init__(self, products, product_data, useKeyword=True, transactions=None):
+    def __init__(self, products, product_data, useKeyword=True, transactions=None, log_errors=False):
         """
         Initialize the recommender with a pre-trained Word2Vec model and a dataframe of books.
         """
-        super().__init__(products, product_data)
+        super().__init__(products, product_data, log_errors=log_errors)
         self.products_df = products
         self.model = None
         self.train()
@@ -559,7 +577,7 @@ class TitleWordVecTitleyRecommenderV2(WordVecBodyRecommender):
         return (' '.join(top_keywords), fullsearch)
         
 
-    def recommend_from_single(self, product_id, n=5, verbose=True, greedy_attempt=3) -> List[tuple[str, float]]:
+    def recommend_from_single(self, product_id, n=5, verbose=False, greedy_attempt=3) -> List[tuple[str, float]]:
         """
         Return recommendations based on a single product.
         """
@@ -570,25 +588,29 @@ class TitleWordVecTitleyRecommenderV2(WordVecBodyRecommender):
         search_term = ""
         seen = set(product_title.lower())
         for k in range(greedy_attempt):
-            keyword, keywords_concat = self.getMostSignificantKeyword(product_title, k=k+1)
-            if(self.useKeyword):
-                search_term = keyword
-            else:
-                search_term = keywords_concat
-            if verbose:
-                print(f"Searching for '{search_term}' from '{product_title}'")
-                # print(recommendations)
-        
-            rec = self.recommend_books_updated(search_term, top_n=n)
-            for rec_item, confidence_rate in rec:
-                # print(rec_item)
-                if rec_item['product_title'].lower() not in seen:
-                    seen.add(rec_item['product_title'].lower())
-                    recommendations.append((rec_item, confidence_rate))
+            try:
+                keyword, keywords_concat = self.getMostSignificantKeyword(product_title, k=k+1)
+                if(self.useKeyword):
+                    search_term = keyword
                 else:
-                    continue
-            if len(recommendations) >= greedy_attempt:
-                break
+                    search_term = keywords_concat
+                if verbose:
+                    print(f"Searching for '{search_term}' from '{product_title}'")
+                    # print(recommendations)
+            
+                rec = self.recommend_wordvec_strategy(search_term, top_n=n)
+                for rec_item, confidence_rate in rec:
+                    # print(rec_item)
+                    if rec_item['product_title'].lower() not in seen:
+                        seen.add(rec_item['product_title'].lower())
+                        recommendations.append((rec_item, confidence_rate))
+                    else:
+                        continue
+                if len(recommendations) >= greedy_attempt:
+                    break
+            except Exception as e:
+                self.log_error(f"Error at recommend_from_single: {e}")
+                continue
         return recommendations
     
     def recommend_from_past(self, transactions, n=10):
@@ -605,8 +627,12 @@ class TitleWordVecTitleyRecommenderV2(WordVecBodyRecommender):
         """
     
         for transaction in transactions:
-            rec: List[tuple[dict, int]] = self.recommend_from_single(transaction)
-            rec.extend(rec) 
+            try:
+                rec: List[tuple[dict, int]] = self.recommend_from_single(transaction)
+                rec.extend(rec) 
+            except Exception as e:
+                self.log_error(f"Error at recommend_from_past: {e}")
+                continue
         # Because there could be repeated rec[i]['product_title'] we need to remove duplicates.
         seen_titles = set()
         unique_rec = []
@@ -665,8 +691,8 @@ class KNNBasicRecommender(RecommendationAbstract):
     sim_options = {"name": "pearson_baseline", "user_based": False}
     algorithm = KNNBasic
     
-    def __init__(self, products: pd.DataFrame, product_data: dict, transactions = None):
-        super().__init__(products, product_data)
+    def __init__(self, products: pd.DataFrame, product_data: dict, transactions = None, log_errors=False):
+        super().__init__(products, product_data, log_errors=log_errors)
         self.products = products
         self.model = None
         
@@ -746,7 +772,7 @@ class KNNBasicRecommender(RecommendationAbstract):
                 pred = self.model.predict(user_id, neighbor_book_id)
                 recommendation_list.append((self.id_to_products[neighbor_book_id], pred.est))
             except Exception as e:
-                print('Error at recommend_from_single', e)
+                self.log_error(f"Error at recommend_from_single: {e}")
                 continue        
         # sort recommendations
         recommendation_list.sort(key=lambda x: x[1], reverse=True)
@@ -778,8 +804,12 @@ class KNNBasicRecommender(RecommendationAbstract):
         predictions = []
         
         for book_id in books_to_predict:
-            pred = model.predict(user_id, book_id)
-            predictions.append((book_id, pred.est))
+            try:
+                pred = model.predict(user_id, book_id)
+                predictions.append((book_id, pred.est))
+            except Exception as e:
+                self.log_error(f"Error at predict_recommendations: {e}")
+                continue
         
         pred_products = []
         # sort predictions
@@ -812,8 +842,7 @@ class KNNBasicRecommender(RecommendationAbstract):
                         products_dictionary[rec_id['id']] = rec_id
                         recs_seen_times[rec_id['id']] = 1
             except Exception as e:
-                print('Error at recommend_from_past', self.strategy_name, e)
-                continue    
+                self.log_error(f"Error at recommend_from_past: {e}")
         for rec_id in recs_seen_times:
             recs.append((products_dictionary[rec_id], recs_seen_times[rec_id]))
             
@@ -871,8 +900,8 @@ class SimilutudeRecommender(KNNBasicRecommender):
     sim_options = {"name": "pearson", "user_based": False}
     algorithm = KNNBasic
     
-    def __init__(self, products: pd.DataFrame, product_data: dict, transactions = None):
-        super().__init__(products, product_data)
+    def __init__(self, products: pd.DataFrame, product_data: dict, transactions = None, log_errors=False):
+        super().__init__(products, product_data, log_errors=log_errors)
         self.products = products
         self.model = None
         
@@ -925,8 +954,12 @@ class SimilutudeRecommender(KNNBasicRecommender):
         """
         Returns the neighbors of a product
         """
-        product_inner_id = self.model.trainset.to_inner_iid(product_id)
-        neighbors = self.model.get_neighbors(product_inner_id, k=n)
+        neighbors = []
+        try:
+            product_inner_id = self.model.trainset.to_inner_iid(product_id)
+            neighbors = self.model.get_neighbors(product_inner_id, k=n)
+        except Exception as e:
+            self.log_error(f"Error at getNeighbors: {e}")
         return neighbors
 
     def recommend_from_single(self, product_id: str, n=5) -> List[Tuple[dict, float]]:
@@ -941,17 +974,20 @@ class SimilutudeRecommender(KNNBasicRecommender):
         # for each neighbor, try to predict and prioritize given a user in all_transactions_that shared that book as well.
         for neighbor_book_inner_id in neighbors:
             # get user_id that top rated the product sort the relevant_transactions
-            if neighbor_book_inner_id == product_inner_id:
+            try:
+                if neighbor_book_inner_id == product_inner_id:
+                    continue
+                product_serie = self.products.iloc[neighbor_book_inner_id]
+                neighbor_book_id = product_serie['id']
+                product = self.id_to_products[neighbor_book_id]
+                
+                if product['product_id'] == product_id:
+                    continue
+                
+                recommendation_list.append((self.id_to_products[neighbor_book_id], 1))
+            except Exception as e:
+                self.log_error(f"Error at recommend_from_single: {e}")
                 continue
-            
-            product_serie = self.products.iloc[neighbor_book_inner_id]
-            neighbor_book_id = product_serie['id']
-            product = self.id_to_products[neighbor_book_id]
-            
-            if product['product_id'] == product_id:
-                continue
-            
-            recommendation_list.append((self.id_to_products[neighbor_book_id], 1))
         
         # sort recommendations
         random.shuffle(recommendation_list)
@@ -969,14 +1005,17 @@ class SimilutudeRecommender(KNNBasicRecommender):
         products_dictionary = {}
         
         for transaction in transactions:
-            recs = self.recommend_from_single(transaction)
-            for rec_id, confidence in recs:
-                
-                if rec_id in recs:
-                    recs_seen_times[rec_id['id']] += 1
-                else:
-                    products_dictionary[rec_id['id']] = rec_id
-                    recs_seen_times[rec_id['id']] = 1
+            try:
+                recs = self.recommend_from_single(transaction)
+                for rec_id, confidence in recs:
+                    
+                    if rec_id in recs:
+                        recs_seen_times[rec_id['id']] += 1
+                    else:
+                        products_dictionary[rec_id['id']] = rec_id
+                        recs_seen_times[rec_id['id']] = 1
+            except Exception as e:
+                self.log_error(f"Error at recommend_from_past: {e}")
         
         for rec_id in recs_seen_times:
             recs.append((products_dictionary[rec_id], recs_seen_times[rec_id]))
@@ -1058,8 +1097,8 @@ class MatrixRecommender(RecommendationAbstract):
     supports_past_recommendation: bool = True
     algorithm=SVD
     
-    def __init__(self, products: pd.DataFrame, product_data: dict, similitudeRec=SimilutudeRecommender, transactions = None):
-        super().__init__(products, product_data)
+    def __init__(self, products: pd.DataFrame, product_data: dict, similitudeRec=SimilutudeRecommender, transactions = None, log_errors=False):
+        super().__init__(products, product_data, log_errors=log_errors)
         self.products = products
         self.model = None
         
@@ -1140,7 +1179,7 @@ class MatrixRecommender(RecommendationAbstract):
                 pred = self.model.predict(user_id, neighbor_book_id)
                 recommendation_list.append((self.id_to_products[neighbor_book_id], pred.est))
             except Exception as e:
-                print('Error at recommend_from_single', self.strategy_name, e)
+                self.log_error(f"Error at recommend_from_single: {e}")
                 continue
         
         # sort recommendations
@@ -1173,8 +1212,12 @@ class MatrixRecommender(RecommendationAbstract):
         predictions = []
         
         for book_id in books_to_predict:
-            pred = model.predict(user_id, book_id)
-            predictions.append((book_id, pred.est))
+            try:
+                pred = model.predict(user_id, book_id)
+                predictions.append((book_id, pred.est))
+            except Exception as e:
+                self.log_error(f"Error at predict_recommendations: {e}")
+                continue
         
         pred_products = []
         # sort predictions
@@ -1207,7 +1250,7 @@ class MatrixRecommender(RecommendationAbstract):
                         products_dictionary[rec_id['id']] = rec_id
                         recs_seen_times[rec_id['id']] = confidence
             except Exception as e:
-                print('Error at recommend_from_past', self.strategy_name, e)
+                self.log_error(f"Error at recommend_from_past: {e}")
                 continue
         for rec_id in recs_seen_times:
             recs.append((products_dictionary[rec_id], recs_seen_times[rec_id]))
@@ -1269,7 +1312,7 @@ class CoClusteringRecommender(MatrixRecommender):
 
 engines_list = [
     
-    WordVecBodyRecommender, TitleWordVecTitleyRecommender,TitleWordVecTitleyRecommenderV2, KNNBasicRecommender,
+    WordVecBodyRecommender, TitleWordVecTitleRecommender,TitleWordVecTitleRecommenderV2, KNNBasicRecommender,
     KNNWithMeansRecommender, KNNWithZScoreRecommender, KNNWithBaselineRecommender, 
     MatrixRecommender, SVDMatrixRecommender, SVDPPMatrixRecommender,
     NMFMatrixRecommender, SlopeOneRecommender, CoClusteringRecommender
@@ -1287,7 +1330,7 @@ for engine in engines_list:
 
 engines_list_streamlit = [
     
-    WordVecBodyRecommender, TitleWordVecTitleyRecommender, KNNBasicRecommender,
+    WordVecBodyRecommender, TitleWordVecTitleRecommender, KNNBasicRecommender,
     KNNWithMeansRecommender, KNNWithZScoreRecommender, KNNWithBaselineRecommender, 
     MatrixRecommender, SVDMatrixRecommender, SVDPPMatrixRecommender,
     NMFMatrixRecommender, SlopeOneRecommender, CoClusteringRecommender
