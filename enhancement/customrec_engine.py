@@ -1301,8 +1301,8 @@ class SlopeOneRecommender(MatrixRecommender):
     algorithm=SlopeOne
     
 class CoClusteringRecommender(MatrixRecommender):
-    strategy_name: str = "Slope One Recommender"
-    slug_name: str = "slope_recommender"
+    strategy_name: str = "Co Clustering Recommender"
+    slug_name: str = "co_clustering_recommender"
     version: str = "v1"
     details: str = "REQUIRES IMPLEMENTATION"
     link: str = "REQUIRES IMPLEMENTATION"
