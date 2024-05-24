@@ -1,17 +1,21 @@
-# Ignore all CSV files
-*.csv
-# Except those in the 'reports' subfolder
-!*/reports/*.csv
 
+# Common Ignore files
+*.csv
+*.zip
+*.pdf
 *.pik
 *.model
-
-*.zip
 *.model
+
+# Except those in the 'reports' subfolder
+!*/reports/*.csv
+!*/*datasets.zip
+
+
+
 */data
 /guides
 
-*.pdf
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
