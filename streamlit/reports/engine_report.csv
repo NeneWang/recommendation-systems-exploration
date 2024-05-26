@@ -1,0 +1,40 @@
+engine,product_data,single_report_detailed,single_report,single_report_total,past_recommend_report,past_recommend_report_total
+WordVec,games,0,10,10,1,1
+TitleWordVec,games,0,10,10,1,1
+TitleWordVecV2,games,0,10,10,1,1
+KNN Basic,games,0,10,10,1,1
+KNN With Means,games,0,10,10,1,1
+KNN With ZScore,games,0,10,10,1,1
+KNN With Means,games,0,10,10,1,1
+Matrix Basic,games,0,10,10,1,1
+SVD Factorization,games,0,10,10,1,1
+SVD PP Matrix Factorization,games,0,10,10,1,1
+NMF Matrix Factorization,games,0,10,10,1,1
+Slope One Recommender,games,0,10,10,1,1
+Co Clustering Recommender,games,0,10,10,1,1
+WordVec,books,0,10,10,1,1
+TitleWordVec,books,0,10,10,1,1
+TitleWordVecV2,books,0,10,10,1,1
+KNN Basic,books,0,10,10,1,1
+KNN With Means,books,0,10,10,1,1
+KNN With ZScore,books,0,10,10,1,1
+KNN With Means,books,0,10,10,1,1
+Matrix Basic,books,0,10,10,1,1
+SVD Factorization,books,0,10,10,1,1
+SVD PP Matrix Factorization,books,0,10,10,1,1
+NMF Matrix Factorization,books,0,10,10,1,1
+Slope One Recommender,books,0,10,10,1,1
+Co Clustering Recommender,books,0,10,10,1,1
+WordVec,movies,0,10,10,1,1
+TitleWordVec,movies,0,10,10,1,1
+TitleWordVecV2,movies,0,10,10,1,1
+KNN Basic,movies,0,10,10,1,1
+KNN With Means,movies,0,10,10,1,1
+KNN With ZScore,movies,0,10,10,1,1
+KNN With Means,movies,0,10,10,1,1
+Matrix Basic,movies,0,10,10,1,1
+SVD Factorization,movies,0,10,10,1,1
+SVD PP Matrix Factorization,movies,0,10,10,1,1
+NMF Matrix Factorization,movies,0,10,10,1,1
+Slope One Recommender,movies,0,10,10,1,1
+Co Clustering Recommender,movies,0,10,10,1,1

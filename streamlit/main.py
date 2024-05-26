@@ -1,21 +1,14 @@
 import streamlit as st
 import pandas as pd
 
-from customrec_engine import CosineSimilarityRecommender, WordVecBodyRecommender, TitleWordVecTitleyRecommender, RecommendationAbstract, TitleWordVecTitleyRecommenderV2
-
+from customrec_engine import RecommendationAbstract
+from customrec_engine import engines, PRODUCT_DATAS
 
 # Load data
 # products_filepath = "../data/products_books_v1.csv"
 # transactions_filepath = "../data/transactions_books_v1.csv"
 
-product_data = {
-    "data_context": "books",
-    "product_filepath": "data/products_books_v1_10_10.csv",
-    "transactions_filepath": "data/transactions_books_v1_10_10.csv",
-    "features": ["id", "product_title", "product_image", "product_soup", "product_images"],
-    "version": "1.0",
-    "unique_name": "_books_v1_10_10",
-}
+product_data = PRODUCT_DATAS[0]
 products_filepath = product_data["product_filepath"]
 transactions_filepath = product_data["transactions_filepath"]
 
