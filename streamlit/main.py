@@ -68,7 +68,7 @@ st.write("Selected products:", st.session_state.selected_product)
 # Search and select products
 selected_product = st.selectbox("Select products to add to cart:", products_df["product_title"])
 st.session_state.selected_product = selected_product
-print(st.session_state.selected_product)
+print("Selected Product", st.session_state.selected_product)
 # Buy button
 if st.button("Buy"):
     transactions = st.session_state.transactions_list
@@ -89,10 +89,11 @@ if st.button("Buy"):
 if st.button("Get Recommendations"):
     if st.session_state.selected_product:
         
-        selected_engine: RecommendationAbstract = engines[recommend_single_engine]["engine"](products=products_df, product_data=product_data)
+        selected_engine: RecommendationAbstract = engines[recommend_single_engine]["engine"](products=products_df, product_data=product_data, transactions=training_transactions_df)
         product = st.session_state.selected_product
         selected_engine.load()
         product_id = get_product_id(product)
+        print("Product ID", product_id, selected_engine.strategy_name)
         recommendation = selected_engine.recommend_from_single(product_id=product_id)
         st.write("Recommendations based on selected products:", recommendation)
     else:

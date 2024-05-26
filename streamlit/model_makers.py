@@ -26,14 +26,12 @@ for product_data in PRODUCT_DATAS:
             try:
                 recs = rec_engine.recommend_from_single(product_id)
                 product_detail = rec_engine.id_to_productDetail(product_id)
-                # Just show the first recommendation product_title
-                # report_arr.append(f" {product_detail['product_title']} => {recs[0]['product_title']} ")
                 single_report += 1
             except Exception as e:
-                print(e)
+                print("Exception at", e)
             
         
-        print(recommendations_arr)
+        # print(recommendations_arr)
         past_recommend_report = 0
         reports_past_report = []
         try:
