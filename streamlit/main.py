@@ -8,20 +8,63 @@ from customrec_engine import engines, PRODUCT_DATAS
 # products_filepath = "../data/products_books_v1.csv"
 # transactions_filepath = "../data/transactions_books_v1.csv"
 
+DATASET_AVAILABLE = {
+    "games": {
+        "product_data": PRODUCT_DATAS[0],
+        "index": 0,
+        "sets": {
+            "FPS Player": [],
+            "RPG Player": [],
+            "Strategy Player": []
+        }
+    },
+    "books": {
+        "product_data": PRODUCT_DATAS[1],
+        "index": 1,
+        "sets": {
+            "Harry Potter Fan": [],
+            "Sci Fi Fan": []
+        }
+    },
+    "movies": {
+        "product_data": PRODUCT_DATAS[2],
+        "index": 2,
+        "sets": {
+            "Action Movie Fan": [],
+            "Romantic Movie Fan": []
+        }
+    }
+}
+
+dataset_selected = 0
 product_data = PRODUCT_DATAS[0]
 products_filepath = product_data["product_filepath"]
 transactions_filepath = product_data["transactions_filepath"]
+
 
 products_df = pd.read_csv(products_filepath)
 training_transactions_df = pd.read_csv(transactions_filepath)
 
 # Define the available product cases
-PRODUCT_CASES = {
+product_cases = {
     "books": {
         "Harry Potter Fan": ["Book 1", "Book 2", "Book 3"],
         "Sci Fi Fan": ["Book 4", "Book 5", "Book 6"]
     }
 }
+
+
+
+# Select the dataset in product datas.
+selected_product_dataset = st.selectbox("Select the dataset:", list(DATASET_AVAILABLE.keys()))
+if selected_product_dataset:
+    product_data = DATASET_AVAILABLE[selected_product_dataset]["product_data"]
+    products_filepath = product_data["product_filepath"]
+    transactions_filepath = product_data["transactions_filepath"]
+    products_df = pd.read_csv(products_filepath)
+    training_transactions_df = pd.read_csv(transactions_filepath)
+
+
 # Define the recommendation engines
 class CosineSimilarity:
     @staticmethod
@@ -31,13 +74,10 @@ class CosineSimilarity:
 
 # Function to generate base cases based on product type
 def base_cases(product_type):
-    return ["empty_case"] + list(PRODUCT_CASES[product_type].keys())
+    return ["empty_case"] + list(product_cases[product_type].keys())
 
 def get_product_id(product_name):
     return products_df.loc[products_df["product_title"] == product_name, "id"].iloc[0]
-
-
-
 
 if "selected_product" not in st.session_state:
     st.session_state.selected_product = []
@@ -57,13 +97,10 @@ products_type = "books"  # Support more types in the future
 # Select base case
 base_case = st.selectbox("Select base case:", base_cases(products_type))
 if base_case != "empty_case":
-    st.session_state.selected_product = PRODUCT_CASES[products_type][base_case]
+    st.session_state.selected_product = product_cases[products_type][base_case]
 
 st.write("Selected products:", st.session_state.selected_product)
 
-# Display products
-# st.write("Product Information:")
-# st.write(products_df)
 
 # Search and select products
 selected_product = st.selectbox("Select products to add to cart:", products_df["product_title"])
