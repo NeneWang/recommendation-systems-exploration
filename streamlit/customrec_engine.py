@@ -589,7 +589,7 @@ class TitleWordVecTitleRecommenderV2(WordVecBodyRecommender):
         seen = set(product_title.lower())
         for k in range(greedy_attempt):
             try:
-                keyword, keywords_concat = self.getMostSignificantKeyword(product_title, k=k+1)
+                keyword, keywords_concat = self.getMostSignificantKeyword(product_title, k=2)
                 if(self.useKeyword):
                     search_term = keyword
                 else:

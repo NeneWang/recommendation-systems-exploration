@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 
 from customrec_engine import RecommendationAbstract
 from customrec_engine import engines, PRODUCT_DATAS
@@ -121,6 +122,17 @@ if st.button("Buy"):
     transactions.append(transaction)
     st.session_state.transactions_list = transactions
     
+def to_arr_df(transactions, columns = ["product_id", "product_title", "product_price", "prediction"]):
+    arr = []
+    for dftrans, pred  in transactions:
+        dicttrans = dftrans
+        dicttrans["prediction"] = pred
+        arr.append(dicttrans)
+    try:
+        return pd.DataFrame(arr).loc[:, columns]
+    except Exception as e:
+        print("Error at", e)
+        return pd.DataFrame(arr)
 
 # Get recommendations
 if st.button("Get Recommendations"):
@@ -132,7 +144,8 @@ if st.button("Get Recommendations"):
         product_id = get_product_id(product)
         print("Product ID", product_id, selected_engine.strategy_name)
         recommendation = selected_engine.recommend_from_single(product_id=product_id)
-        st.write("Recommendations based on selected products:", recommendation)
+        st.write("Recommendations based on selected products:")
+        st.dataframe(to_arr_df(recommendation))
     else:
         st.warning("Please select some products first!")
 
@@ -147,11 +160,12 @@ if st.button("Get Recommendations"):
         for transaction in transactions:
             transaction_books_ids.append(transaction["product_id"])
         recommend_past =recommend_past_engine_obj.recommend_from_past(transaction_books_ids)
-        st.write("Recommendations based on past transaction:", recommend_past)
+        st.write("Recommendations based on past transaction:")
+        st.dataframe(to_arr_df(recommend_past))
 
 # Show transactions
 st.write("Transaction History:")
 # Show st.session_state.transactions_list
 transactions_df = pd.DataFrame(st.session_state.transactions_list)
-st.write(transactions_df)
+st.dataframe(transactions_df)
     
