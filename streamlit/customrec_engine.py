@@ -1169,18 +1169,20 @@ class MatrixRecommender(RecommendationAbstract):
         for transaction in transactions:
             try:
                 recs = self.recommend_from_single(transaction)
-                for rec_id, confidence in recs:
-                
-                    if rec_id in recs:
-                        recs_seen_times[rec_id['id']] += confidence
+                for rec_data, confidence in recs:
+                    rec_id = rec_data['product_id']
+                    if rec_id in recs_seen_times:
+                        recs_seen_times[rec_id] += confidence
                     else:
-                        products_dictionary[rec_id['id']] = rec_id
-                        recs_seen_times[rec_id['id']] = confidence
+                        products_dictionary[rec_id] = rec_data
+                        recs_seen_times[rec_id] = confidence
             except Exception as e:
                 self.log_error(f"Error at recommend_from_past: {e}")
                 continue
-        for rec_id in recs_seen_times:
-            recs.append((products_dictionary[rec_id], recs_seen_times[rec_id]))
+        for rec_data in recs_seen_times:
+            # print("recommend form past")
+            # print(recs_seen_times)
+            recs.append((products_dictionary[rec_data], recs_seen_times[rec_data]))
             
         recs = list(recs)
         

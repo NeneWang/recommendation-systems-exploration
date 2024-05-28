@@ -15,24 +15,26 @@ DATASET_AVAILABLE = {
         "index": 0,
         "sets": {
             "Souls Player": [374320, 1245620, 335300],
-            "RPG Player": [],
-            "Strategy Player": []
+            "Anime Gamer": [349040, 633230, 851850, 840720],
+            "Strategy Player": [1142710, 779340, 916440, 3900],
+            "Final Fantasy Fan": [1608070, 39210, 1462040]
         }
     },
     "books": {
         "product_data": PRODUCT_DATAS[1],
         "index": 1,
         "sets": {
-            "Harry Potter Fan": [],
-            "Sci Fi Fan": []
+            "Harry Potter Fan": ["059035342X", "0439064872", "043935806X", "0439136369"],
+            "Sci Fi Fan": ["0441172717", "0812550706", "0440217563"]
         }
     },
     "movies": {
         "product_data": PRODUCT_DATAS[2],
         "index": 2,
         "sets": {
-            "Action Movie Fan": [],
-            "Romantic Movie Fan": []
+            "Action Movie Fan": [95, 1370, 1374, 1285],
+            "Romantic Movie Fan": [454, 236],
+            'Medieval Fan': [616, 1911]
         }
     }
 }
@@ -47,15 +49,6 @@ products_type = "books"  # Support more types in the future
 
 products_df = pd.read_csv(products_filepath)
 training_transactions_df = pd.read_csv(transactions_filepath)
-
-# Define the available product cases
-product_cases = {
-    "books": {
-        "Harry Potter Fan": ["Book 1", "Book 2", "Book 3"],
-        "Sci Fi Fan": ["Book 4", "Book 5", "Book 6"]
-    }
-}
-
 
 
 # Select the dataset in product datas.
@@ -95,6 +88,13 @@ st.title("Product Recommendation Demo")
 recommend_single_engine = st.selectbox("Select the recommendation engine for single product:", list(engines.keys()))
 recommend_past_engine = st.selectbox("Select the recommendation engine for past transactions:", list(engines.keys()))
 
+def showTransactions(transactionsArr):
+    transactionsDf = pd.DataFrame(transactionsArr)
+    st.write("Transaction History:")
+    try:
+        st.dataframe(transactionsDf[['product_id', 'product_title']])
+    except Exception as e:
+        st.dataframe(transactionsDf)
 
 # Select base case
 base_case = st.selectbox("Select base case:", base_cases(products_type))
@@ -126,6 +126,11 @@ st.write("Selected products:", st.session_state.selected_product)
 selected_product = st.selectbox("Select products to add to cart:", products_df["product_title"])
 st.session_state.selected_product = selected_product
 print("Selected Product", st.session_state.selected_product)
+
+if st.button("Reset Transactions"):
+    st.session_state.transactions_list = []
+    
+
 # Buy button
 if st.button("Buy"):
     transactions = st.session_state.transactions_list
@@ -172,7 +177,7 @@ if st.button("Get Recommendations"):
     # sort by product appearisons 
     if not len(transactions) == 0:
         # print("recommend_past_engine", recommend_past_engine)
-        recommend_past_engine_obj: RecommendationAbstract = engines[recommend_past_engine]["engine"](products=products_df, product_data=product_data)
+        recommend_past_engine_obj: RecommendationAbstract = engines[recommend_past_engine]["engine"](products=products_df, product_data=product_data, transactions=training_transactions_df)
         recommend_past_engine_obj.load()
         
         transaction_books_ids = []
@@ -183,8 +188,4 @@ if st.button("Get Recommendations"):
         st.dataframe(to_arr_df(recommend_past))
 
 # Show transactions
-st.write("Transaction History:")
-# Show st.session_state.transactions_list
-transactions_df = pd.DataFrame(st.session_state.transactions_list)
-st.dataframe(transactions_df)
-    
+showTransactions(st.session_state.transactions_list)
