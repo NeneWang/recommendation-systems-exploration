@@ -14,7 +14,7 @@ DATASET_AVAILABLE = {
         "product_data": PRODUCT_DATAS[0],
         "index": 0,
         "sets": {
-            "FPS Player": [],
+            "Souls Player": [374320, 1245620, 335300],
             "RPG Player": [],
             "Strategy Player": []
         }
@@ -41,6 +41,8 @@ dataset_selected = 0
 product_data = PRODUCT_DATAS[0]
 products_filepath = product_data["product_filepath"]
 transactions_filepath = product_data["transactions_filepath"]
+# Select product type
+products_type = "books"  # Support more types in the future
 
 
 products_df = pd.read_csv(products_filepath)
@@ -64,6 +66,7 @@ if selected_product_dataset:
     transactions_filepath = product_data["transactions_filepath"]
     products_df = pd.read_csv(products_filepath)
     training_transactions_df = pd.read_csv(transactions_filepath)
+    products_type = selected_product_dataset
 
 
 # Define the recommendation engines
@@ -75,7 +78,7 @@ class CosineSimilarity:
 
 # Function to generate base cases based on product type
 def base_cases(product_type):
-    return ["empty_case"] + list(product_cases[product_type].keys())
+    return ["empty_case"] + list(DATASET_AVAILABLE[product_type]['sets'].keys())
 
 def get_product_id(product_name):
     return products_df.loc[products_df["product_title"] == product_name, "id"].iloc[0]
@@ -92,13 +95,29 @@ st.title("Product Recommendation Demo")
 recommend_single_engine = st.selectbox("Select the recommendation engine for single product:", list(engines.keys()))
 recommend_past_engine = st.selectbox("Select the recommendation engine for past transactions:", list(engines.keys()))
 
-# Select product type
-products_type = "books"  # Support more types in the future
 
 # Select base case
 base_case = st.selectbox("Select base case:", base_cases(products_type))
 if base_case != "empty_case":
-    st.session_state.selected_product = product_cases[products_type][base_case]
+    print('product_type', products_type)
+    # reset the cart transactions using the new dataset
+    transactions_list = []
+    
+    for product_id in DATASET_AVAILABLE[selected_product_dataset]["sets"][base_case]:
+        # print("Product ID", product_id)
+        try:
+            product_title = products_df.loc[products_df["product_id"] == product_id, 'product_title']
+            transactions_list.append({
+                "id": product_id,
+                "user_id": 1,
+                "product_id": product_id,
+                "product_title": product_title.iloc[0],
+                "rate": 5                
+            })
+        except Exception as e:
+            print("Base transactions || Error at", e)
+    st.session_state.transactions_list = transactions_list
+            
 
 st.write("Selected products:", st.session_state.selected_product)
 
