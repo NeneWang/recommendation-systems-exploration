@@ -325,8 +325,13 @@ class WordVecBodyRecommender(RecommendationAbstract):
         """
         # Concatenate product_soup from past transactions
         past_text = ' '.join(self.products.loc[self.products['id'].isin(transactions), 'product_soup'])
+        recommendations = []
         # Use the self.recommend_books_updated function to recommend books based on past transactions
-        recommendations = self.recommend_wordvec_strategy(past_text, top_n=n)
+        
+        try:
+            recommendations = self.recommend_wordvec_strategy(past_text, top_n=n)
+        except Exception as e:
+            self.log_error(f"Error at recommend_from_past: {e}")
         return recommendations
         
             
@@ -393,8 +398,11 @@ class TitleWordVecTitleRecommender(WordVecBodyRecommender):
         # Concatenate product_titles from past transactions
         past_titles = self.products_df.loc[self.products_df['id'].isin(transactions), 'product_title']
         # Use the self.recommend_books_updated function to recommend books based on past transactions
-        
-        recommendations = self.recommend_wordvec_strategy(' '.join(past_titles), top_n=n)
+        recommendations = []
+        try:
+            recommendations = self.recommend_wordvec_strategy(' '.join(past_titles), top_n=n)
+        except Exception as e:
+            self.log_error(f"Error at recommend_from_past: {e}")
         return recommendations
 
         

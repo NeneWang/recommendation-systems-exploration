@@ -16,6 +16,22 @@ pip install -r requirements.txt --upgrade
 python -m spacy download en_core_web_sm
 ```
 
+Running Locally (Streamlit):
+
+
+```
+cd streamlit
+# UNZIP data.zip inside of streamlit folder
+python model_makers.py 
+streamlit run main.py
+```
+
+Make sure you populate the models folders:
+
+![](./img/2024-05-29-03-40-19.png)
+
+![](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMzl5djAyOTR4N2Z4Z253aXhzc3h4cnRrbzAzZTM3MHA2bGF3MHF3aCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/wxWJmfNxzhDDwR4KV8/giphy.gif)
+
 ## Structure
 
 - Streamlit: Application

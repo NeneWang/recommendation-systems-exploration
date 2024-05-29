@@ -125,7 +125,6 @@ st.write("Selected products:", st.session_state.selected_product)
 # Search and select products
 selected_product = st.selectbox("Select products to add to cart:", products_df["product_title"])
 st.session_state.selected_product = selected_product
-print("Selected Product", st.session_state.selected_product)
 
 if st.button("Reset Transactions"):
     st.session_state.transactions_list = []
@@ -166,7 +165,7 @@ if st.button("Get Recommendations"):
         product = st.session_state.selected_product
         selected_engine.load()
         product_id = get_product_id(product)
-        print("Product ID", product_id, selected_engine.strategy_name)
+        
         recommendation = selected_engine.recommend_from_single(product_id=product_id)
         st.write("Recommendations based on selected products:")
         st.dataframe(to_arr_df(recommendation))
